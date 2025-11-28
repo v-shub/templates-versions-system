@@ -1,0 +1,10 @@
+---
+blank_issues_enabled: false
+
+contact_links:
+  - name: "📖 Документация"
+    url: "https://github.com/v-shub/templates-versions-system/tree/main/docs/dev/development-process.md"
+    about: "Прочтите перед созданием Issue"
+  - name: "💬 Вопросы"
+    url: "https://github.com/v-shub/templates-versions-system/discussions"
+    about: "Задавайте вопросы в Discussions"
