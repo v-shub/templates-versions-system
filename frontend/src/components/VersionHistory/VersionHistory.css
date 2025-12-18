@@ -1,0 +1,154 @@
+.version-history {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.version-history-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 18px;
+  color: #666;
+}
+
+.version-history h2 {
+  padding: 20px;
+  margin: 0;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  color: #333;
+}
+
+.versions-list {
+  padding: 20px;
+}
+
+.version-item {
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  position: relative;
+}
+
+.version-item:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.version-item--selected {
+  border-color: #007bff;
+  background: #f8fbff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.version-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.version-date {
+  font-size: 12px;
+  color: #666;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.version-description {
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+
+.version-selected-indicator {
+  background: #007bff;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.comparison-actions {
+  padding: 0 20px 20px;
+  text-align: center;
+}
+
+.btn-compare {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.btn-compare:hover {
+  background: #218838;
+}
+
+.comparison-result {
+  margin: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.comparison-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.comparison-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.btn-close-comparison {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.btn-close-comparison:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.comparison-result pre {
+  margin: 0;
+  padding: 20px;
+  background: #f8f9fa;
+  overflow-x: auto;
+  font-size: 12px;
+}
