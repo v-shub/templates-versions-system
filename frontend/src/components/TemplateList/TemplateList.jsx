@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ApiService from '../../services/api';
-import './TemplateList.css'
-
+import './TemplateList.css';
 
 function TemplateList({ onTemplateSelect, onNewTemplate }) {
   const [templates, setTemplates] = useState([]);
@@ -68,7 +67,7 @@ function TemplateList({ onTemplateSelect, onNewTemplate }) {
       <div className="template-list-content">
         {templates.map(template => (
           <div
-            key={template.id}
+            key={template._id }
             className="template-item"
             onClick={() => handleTemplateClick(template)}
           >

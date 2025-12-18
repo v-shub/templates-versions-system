@@ -114,10 +114,10 @@ function SearchTemplates({ onTemplateSelect }) {
 
   const getStatusIcon = (status) => {
     switch (status) {
-        case 'draft': return '📝';
-        case 'approved': return '✅';
-        case 'deprecated': return '🗑';
-        default: return '📄';
+        case 'draft': return 'draft';
+        case 'approved': return 'good';
+        case 'deprecated': return 'trash';
+        default: return 'doc';
     }
   };
 
@@ -299,7 +299,7 @@ function SearchTemplates({ onTemplateSelect }) {
 
                   <div className="result-file-info">
                     <span className="result-file-type">
-                        📎{template.file.originalName.split('.').pop().toUpperCase()}
+                        {template.file.originalName.split('.').pop().toUpperCase()}
                     </span>
                     <span className="result-file-size">
                       {(template.file.size / 1024).toFixed(1)} KB
@@ -325,7 +325,7 @@ function SearchTemplates({ onTemplateSelect }) {
       {/* Сообщение если ничего не найдено (но не было ошибки) */}
       {!loading && !error && searchResults.length === 0 && searchQuery && (
         <div className="search-message info">
-            🔍 Введите критерии поиска и нажмите "Найти"
+             Введите критерии поиска и нажмите "Найти"
         </div>
         )}
     </div>

@@ -231,7 +231,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             disabled={loading}
           />
           {errors.name && (
-            <span className="error-message">⚠️ {errors.name}</span>
+            <span className="error-message"> {errors.name}</span>
           )}
         </div>
 
@@ -257,7 +257,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
               ))}
             </select>
             {errors.category && (
-              <span className="error-message">⚠️ {errors.category}</span>
+              <span className="error-message"> {errors.category}</span>
             )}
           </div>
 
@@ -281,7 +281,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
               ))}
             </select>
             {errors.department && (
-              <span className="error-message">⚠️ {errors.department}</span>
+              <span className="error-message"> {errors.department}</span>
             )}
           </div>
         </div>
@@ -303,7 +303,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             disabled={loading}
           />
           {errors.description && (
-            <span className="error-message">⚠️ {errors.description}</span>
+            <span className="error-message"> {errors.description}</span>
           )}
         </div>
 
@@ -324,16 +324,16 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
           />
           {formData.file && (
             <div className="file-info">
-              📎 {formData.file.name} ({(formData.file.size / 1024 / 1024).toFixed(2)} MB)
+               {formData.file.name} ({(formData.file.size / 1024 / 1024).toFixed(2)} MB)
             </div>
           )}
           {template?.file && !formData.file && (
             <div className="file-info">
-              📎 Текущий файл: {template.file.originalName}
+               Текущий файл: {template.file.originalName}
             </div>
           )}
           {errors.file && (
-            <span className="error-message">⚠️ {errors.file}</span>
+            <span className="error-message"> {errors.file}</span>
           )}
           <div className="form-hint">
             Поддерживаемые форматы: DOC, DOCX, PDF, TXT, RTF (макс. 10MB)
@@ -363,7 +363,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             </button>
           </div>
           {errors.tags && (
-            <span className="error-message">⚠️ {errors.tags}</span>
+            <span className="error-message"> {errors.tags}</span>
           )}
           
           {formData.tags.length > 0 && (
@@ -391,7 +391,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
         {/* Ошибка отправки */}
         {errors.submit && (
           <div className="error-message error-message--submit">
-            ⚠️ {errors.submit}
+             {errors.submit}
           </div>
         )}
 
