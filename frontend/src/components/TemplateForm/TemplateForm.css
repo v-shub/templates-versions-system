@@ -175,3 +175,77 @@
   min-width: 120px;
   justify-content: center;
 }
+
+.file-preview {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.file-preview h4 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.preview-content {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.preview-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.preview-truncated {
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #6c757d;
+  text-align: center;
+}
+
+.preview-info {
+  margin-top: 10px;
+}
+
+.preview-warning {
+  padding: 8px 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #e7f4ff;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #0066cc;
+}
+
+.file-info strong {
+  font-weight: 600;
+}

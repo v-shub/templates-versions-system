@@ -36,7 +36,17 @@ function VersionHistory({ templateId }) {
       return prev;
     });
   };
-
+  const compareContentVersions = (version1Content, version2Content) => {
+    // Реализация сравнения контента
+    return {
+      differences: [
+        'Изменена дата договора',
+        'Увеличен размер арендной платы',
+        'Добавлены пункты о штрафах'
+      ]
+    };
+  };
+  
   const compareVersions = async () => {
     if (selectedVersions.length === 2) {
       try {

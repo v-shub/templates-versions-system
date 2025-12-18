@@ -16,6 +16,83 @@ const mockTemplates = [
       size: 24576,
       url: '/files/rental-agreement.docx'
     },
+    content: `# ДОГОВОР АРЕНДЫ ОФИСНОГО ПОМЕЩЕНИЯ № 001/24
+
+г. Москва                                  15 января 2024 года
+
+ООО "АРЕНДОДАТЕЛЬ", именуемое в дальнейшем "Арендодатель", в лице генерального директора Иванова И.И., действующего на основании Устава, с одной стороны, и ООО "АРЕНДАТОР", именуемое в дальнейшем "Арендатор", в лице генерального директора Петрова П.П., действующего на основании Устава, с другой стороны, совместно именуемые "Стороны", заключили настоящий Договор о нижеследующем:
+
+## 1. ПРЕДМЕТ ДОГОВОРА
+1.1. Арендодатель предоставляет, а Арендатор принимает в аренду офисное помещение общей площадью 50 (пятьдесят) кв. м, расположенное по адресу: г. Москва, ул. Примерная, д. 10, офис 505, для использования в целях размещения офиса и осуществления предпринимательской деятельности.
+
+## 2. СРОК АРЕНДЫ
+2.1. Настоящий Договор заключен на срок с 01 февраля 2024 года по 31 января 2025 года.
+
+## 3. АРЕНДНАЯ ПЛАТА
+3.1. Размер арендной платы составляет 50 000 (пятьдесят тысяч) рублей в месяц, включая НДС.
+3.2. Арендная плата вносится Арендатором не позднее 10-го числа каждого месяца.
+3.3. В случае просрочки платежа Арендатор уплачивает пеню в размере 0,1% от суммы просроченного платежа за каждый день просрочки.
+
+## 4. ПРАВА И ОБЯЗАННОСТИ СТОРОН
+4.1. Арендатор обязан:
+   - Использовать помещение строго по назначению;
+   - Своевременно вносить арендную плату;
+   - Соблюдать правила пожарной безопасности;
+   - Обеспечивать сохранность имущества.
+
+4.2. Арендодатель обязан:
+   - Предоставить помещение в надлежащем состоянии;
+   - Обеспечить коммунальные услуги;
+   - Проводить капитальный ремонт при необходимости.
+
+## 5. РАСТОРЖЕНИЕ ДОГОВОРА
+5.1. Договор может быть расторгнут по соглашению Сторон.
+5.2. Арендодатель вправе расторгнуть Договор в одностороннем порядке в случае неуплаты арендной платы более 30 дней.
+5.3. Арендатор вправе расторгнуть Договор, предупредив Арендодателя за 1 месяц.
+
+## 6. ПРОЧИЕ УСЛОВИЯ
+6.1. Все споры решаются путем переговоров.
+6.2. Договор составлен в двух экземплярах, имеющих равную юридическую силу.
+
+ПОДПИСИ СТОРОН:
+
+Арендодатель: _______________ /Иванов И.И./
+Арендатор:   _______________ /Петров П.П./`,
+    previousContent: `# ДОГОВОР АРЕНДЫ ОФИСНОГО ПОМЕЩЕНИЯ № 001/24
+
+г. Москва                                  10 января 2024 года
+
+ООО "АРЕНДОДАТЕЛЬ", именуемое в дальнейшем "Арендодатель", в лице генерального директора Иванова И.И., действующего на основании Устава, с одной стороны, и ООО "АРЕНДАТОР", именуемое в дальнейшем "Арендатор", в лице генерального директора Петрова П.П., действующего на основании Устава, с другой стороны, совместно именуемые "Стороны", заключили настоящий Договор о нижеследующем:
+
+## 1. ПРЕДМЕТ ДОГОВОРА
+1.1. Арендодатель предоставляет, а Арендатор принимает в аренду офисное помещение общей площадью 50 (пятьдесят) кв. м, расположенное по адресу: г. Москва, ул. Примерная, д. 10, офис 505.
+
+## 2. СРОК АРЕНДЫ
+2.1. Настоящий Договор заключен на срок с 01 февраля 2024 года по 31 декабря 2024 года.
+
+## 3. АРЕНДНАЯ ПЛАТА
+3.1. Размер арендной платы составляет 45 000 (сорок пять тысяч) рублей в месяц, включая НДС.
+3.2. Арендная плата вносится Арендатором не позднее 15-го числа каждого месяца.
+
+## 4. ПРАВА И ОБЯЗАННОСТИ СТОРОН
+4.1. Арендатор обязан:
+   - Использовать помещение по назначению;
+   - Вносить арендную плату.
+
+4.2. Арендодатель обязан:
+   - Предоставить помещение;
+   - Обеспечить коммунальные услуги.
+
+## 5. РАСТОРЖЕНИЕ ДОГОВОРА
+5.1. Договор может быть расторгнут по соглашению Сторон.
+
+## 6. ПРОЧИЕ УСЛОВИЯ
+6.1. Все споры решаются путем переговоров.
+
+ПОДПИСИ СТОРОН:
+
+Арендодатель: _______________ /Иванов И.И./
+Арендатор:   _______________ /Петров П.П./`,
     metadata: {
       author: 'Ivanov I.I.',
       version: 1.2,
@@ -40,6 +117,50 @@ const mockTemplates = [
       size: 15360,
       url: '/files/vacation-request.pdf'
     },
+    content: `# ЗАЯВЛЕНИЕ НА ОТПУСК
+
+Дата: 20 января 2024 г.
+Табельный номер: 12345
+ФИО сотрудника: Петрова Анна Сергеевна
+Должность: Менеджер по продажам
+Отдел: Отдел продаж
+
+## ПРОШУ ПРЕДОСТАВИТЬ МНЕ ЕЖЕГОДНЫЙ ОПЛАЧИВАЕМЫЙ ОТПУСК
+Период отпуска: с 01 февраля 2024 г. по 14 февраля 2024 г.
+Общая продолжительность: 14 календарных дней.
+
+## РАСЧЕТ ОТПУСКНЫХ:
+Стаж работы в компании: 2 года 3 месяца
+Количество дней отпуска: 28 дней в год
+Неиспользованные дни: 18 дней
+Используемые дни: 14 дней
+Оставшиеся дни: 4 дня
+
+## КОММЕНТАРИИ:
+Отпуск связан с семейными обстоятельствами.
+Замещение на период отпуска: Сидоров А.А.
+
+## СОГЛАСОВАНИЕ:
+Непосредственный руководитель: _______________ /Иванов И.И./
+Начальник отдела кадров: _______________ /Смирнова О.П./
+Генеральный директор: _______________ /Васильев В.В./`,
+    previousContent: `# ЗАЯВЛЕНИЕ НА ОТПУСК
+
+Дата: 18 января 2024 г.
+Табельный номер: 12345
+ФИО сотрудника: Петрова Анна Сергеевна
+Должность: Менеджер по продажам
+Отдел: Отдел продаж
+
+## ПРОШУ ПРЕДОСТАВИТЬ МНЕ ОТПУСК
+Период отпуска: с 01 февраля 2024 г. по 10 февраля 2024 г.
+Продолжительность: 10 дней.
+
+## КОММЕНТАРИИ:
+Замещение на период отпуска: Сидоров А.А.
+
+## СОГЛАСОВАНИЕ:
+Руководитель: _______________ /Иванов И.И./`,
     metadata: {
       author: 'Petrova A.S.',
       version: 2.0,
@@ -108,61 +229,75 @@ const ApiService = {
   },
   
   async createTemplate(templateData) {
-    await this.delay(800);
-    console.log('API: createTemplate', templateData);
-    
-    const newTemplate = {
-      _id: Date.now().toString(),
-      name: templateData.name || 'New Template',
-      description: templateData.description || '',
-      category: templateData.category || 'other',
-      department: templateData.department || 'management',
-      tags: templateData.tags || [],
-      file: {
-        originalName: 'new-file.docx',
-        storedName: 'file_' + Date.now() + '.docx',
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        size: 10240,
-        url: '/files/new-file.docx'
-      },
-      metadata: {
-        author: 'Current User',
-        version: 1.0,
-        status: 'draft',
-        lastModified: new Date().toISOString(),
-        checksum: 'mock_' + Date.now()
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockTemplates.push(newTemplate);
-    return newTemplate;
-  },
+  await this.delay(800);
+  console.log('API: createTemplate', templateData);
   
-  async updateTemplate(id, templateData) {
-    await this.delay(700);
-    console.log('API: updateTemplate', { id, templateData });
-    
-    const index = mockTemplates.findIndex(t => t._id === id);
-    if (index === -1) {
-      throw new Error(`Template with ID ${id} not found`);
-    }
-    
-    const updatedTemplate = {
-      ...mockTemplates[index],
-      ...templateData,
-      metadata: {
-        ...mockTemplates[index].metadata,
-        version: mockTemplates[index].metadata.version + 0.1,
-        lastModified: new Date().toISOString()
-      },
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockTemplates[index] = updatedTemplate;
-    return updatedTemplate;
-  },
+  
+  const hasContent = templateData.content && templateData.content.length > 0;
+  const isWordContent = templateData.content?.includes('[Word document');
+  
+  const newTemplate = {
+    _id: Date.now().toString(),
+    name: templateData.name || 'New Template',
+    description: templateData.description || '',
+    category: templateData.category || 'other',
+    department: templateData.department || 'management',
+    tags: templateData.tags || [],
+    content: templateData.content || '', // Сохраняем контент
+    previousContent: '', // Пусто для нового шаблона
+    file: {
+      originalName: hasContent 
+        ? (isWordContent ? `${templateData.name || 'template'}.docx` : `${templateData.name || 'template'}.txt`)
+        : 'new-file.docx',
+      storedName: 'file_' + Date.now() + (isWordContent ? '.docx' : '.txt'),
+      mimeType: isWordContent 
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'text/plain',
+      size: templateData.content ? templateData.content.length * 2 : 10240,
+      url: '/files/new-file'
+    },
+    metadata: {
+      author: 'Current User',
+      version: 1.0,
+      status: 'draft',
+      lastModified: new Date().toISOString(),
+      checksum: 'mock_' + Date.now()
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  mockTemplates.push(newTemplate);
+  return newTemplate;
+},
+
+async updateTemplate(id, templateData) {
+  await this.delay(700);
+  console.log('API: updateTemplate', { id, templateData });
+  
+  const index = mockTemplates.findIndex(t => t._id === id);
+  if (index === -1) {
+    throw new Error(`Template with ID ${id} not found`);
+  }
+  
+  // Сохраняем предыдущий контент перед обновлением
+  const previousContent = mockTemplates[index].content;
+  
+  const updatedTemplate = {
+    ...mockTemplates[index],
+    ...templateData,
+    previousContent: previousContent, // Сохраняем старый контент
+    metadata: {
+      ...mockTemplates[index].metadata,
+      version: mockTemplates[index].metadata.version + 0.1,
+      lastModified: new Date().toISOString()
+    },
+    updatedAt: new Date().toISOString()
+  };
+  
+  mockTemplates[index] = updatedTemplate;
+  return updatedTemplate;
+},
   
   async deleteTemplate(id) {
     await this.delay(600);
