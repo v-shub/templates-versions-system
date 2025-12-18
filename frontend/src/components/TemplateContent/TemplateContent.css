@@ -1,0 +1,270 @@
+
+.template-content {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-top: 25px;
+}
+
+/* Controls */
+.content-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.view-mode-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.view-mode-btn {
+  padding: 10px 20px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.view-mode-btn:hover:not(.active) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.view-mode-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.content-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-download,
+.btn-copy {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-download {
+  background: #10b981;
+  color: white;
+}
+
+.btn-download:hover {
+  background: #059669;
+}
+
+.btn-copy {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-copy:hover {
+  background: #e2e8f0;
+}
+
+/* Content Display */
+.content-display {
+  min-height: 400px;
+  max-height: 600px;
+  overflow: auto;
+}
+
+.content-view {
+  padding: 25px;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.content-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.file-info {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.file-name {
+  font-weight: 500;
+}
+
+.file-type {
+  background: #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+/* Content Text */
+.content-text {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  max-height: 500px;
+  overflow: auto;
+}
+
+/* Comparison Styles */
+.diff-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stat {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+
+.stat.added {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.stat.removed {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.stat.same {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+/* Diff Content */
+.diff-content {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+  max-height: 500px;
+}
+
+.diff-line {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 0;
+  border-left: 4px solid transparent;
+}
+
+.diff-line:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.line-number {
+  min-width: 50px;
+  text-align: right;
+  padding: 0 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.line-content {
+  flex: 1;
+  padding: 0 10px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.line-added {
+  background: #d1fae5;
+  border-left-color: #10b981;
+}
+
+.line-removed {
+  background: #fee2e2;
+  border-left-color: #ef4444;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.line-same {
+  background: transparent;
+  border-left-color: transparent;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .content-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .view-mode-selector {
+    justify-content: center;
+  }
+  
+  .content-actions {
+    justify-content: center;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .diff-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .content-text,
+  .diff-content {
+    font-size: 12px;
+  }
+}

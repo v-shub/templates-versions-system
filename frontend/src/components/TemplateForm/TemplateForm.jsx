@@ -2,6 +2,36 @@ import React, { useState, useEffect } from 'react';
 import ApiService from '../../services/api';
 import './TemplateForm.css';
 
+// Утилита для чтения файлов
+const readFileContent = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      resolve(event.target.result);
+    };
+    
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      reader.readAsText(file);
+    } else if (file.type.includes('pdf') || file.name.endsWith('.pdf')) {
+      reader.readAsBinaryString(file);
+      resolve('[PDF document - content preview not available in this version]');
+    } else if (file.type.includes('application/vnd.openxmlformats') || 
+               file.name.endsWith('.docx') || 
+               file.name.endsWith('.doc')) {
+      resolve('[Word document - content preview not available in this version]');
+    } else if (file.type.includes('text/rtf') || file.name.endsWith('.rtf')) {
+      resolve('[RTF document - content preview not available in this version]');
+    } else {
+      resolve('[Binary file - content preview not available]');
+    }
+  });
+};
+
 function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -9,13 +39,16 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
     category: '',
     department: '',
     tags: [],
-    file: null
+    file: null,
+    content: '', // Добавляем поле для контента
+    previousContent: '' // Для отслеживания предыдущего контента при редактировании
   });
+  
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [newTag, setNewTag] = useState('');
   const [touched, setTouched] = useState({});
-
+  const [filePreview, setFilePreview] = useState(''); // Для предпросмотра содержимого файла
   
   const categories = [
     { value: '', label: 'Выберите категорию' },
@@ -46,10 +79,53 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
         category: template.category || '',
         department: template.department || '',
         tags: template.tags || [],
-        file: null
+        file: null,
+        content: template.content || '', // Загружаем существующий контент
+        previousContent: template.content || '' // Сохраняем для сравнения
       });
+      
+      // Если есть контент, показываем его в предпросмотре
+      if (template.content && template.content !== '[Binary file - content preview not available]') {
+        setFilePreview(template.content.substring(0, 500));
+      }
     }
   }, [template, isEdit]);
+
+  // Обновленная функция обработки файла
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      file: file
+    }));
+    
+    // Сбрасываем ошибку файла
+    setErrors(prev => ({ ...prev, file: '' }));
+    
+    try {
+      // Читаем содержимое файла
+      const content = await readFileContent(file);
+      
+      setFormData(prev => ({
+        ...prev,
+        content: content
+      }));
+      
+      // Показываем предпросмотр (ограничиваем длину)
+      const preview = content.substring(0, 500);
+      setFilePreview(preview);
+      
+    } catch (error) {
+      console.error('Error reading file:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        file: 'Не удалось прочитать содержимое файла' 
+      }));
+      setFilePreview('');
+    }
+  };
 
   // Валидация
   const validateField = (name, value) => {
@@ -94,23 +170,15 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
   };
 
   const handleInputChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value } = e.target;
     
-    if (name === 'file') {
-      setFormData(prev => ({
-        ...prev,
-        file: files[0] || null
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
     if (touched[name]) {
-      const fieldErrors = validateField(name, name === 'file' ? files[0] : value);
+      const fieldErrors = validateField(name, value);
       setErrors(prev => ({
         ...prev,
         ...fieldErrors
@@ -119,17 +187,16 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
   };
 
   const handleBlur = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value } = e.target;
     setTouched(prev => ({ ...prev, [name]: true }));
     
-    const fieldErrors = validateField(name, name === 'file' ? files?.[0] : value);
+    const fieldErrors = validateField(name, value);
     setErrors(prev => ({
       ...prev,
       ...fieldErrors
     }));
   };
 
-  
   const handleAddTag = () => {
     const tag = newTag.trim();
     if (tag && !formData.tags.includes(tag)) {
@@ -167,14 +234,14 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    
+    // Помечаем все поля как "тронутые" для валидации
     const allTouched = Object.keys(formData).reduce((acc, key) => {
       acc[key] = true;
       return acc;
     }, {});
     setTouched(allTouched);
     
-    
+    // Валидируем все поля
     const newErrors = {};
     Object.keys(formData).forEach(field => {
       const fieldErrors = validateField(field, formData[field]);
@@ -186,11 +253,30 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
 
     setLoading(true);
     try {
+      // Подготавливаем данные для отправки
+      const templateData = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        department: formData.department,
+        tags: formData.tags,
+        content: formData.content, // Добавляем контент
+        fileInfo: formData.file ? {
+          name: formData.file.name,
+          size: formData.file.size,
+          type: formData.file.type
+        } : null
+      };
+      
       let result;
       if (isEdit && template) {
-        result = await ApiService.updateTemplate(template._id, formData);
+        // При редактировании сохраняем предыдущий контент для сравнения
+        if (template.content !== formData.content) {
+          templateData.previousContent = template.content;
+        }
+        result = await ApiService.updateTemplate(template._id, templateData);
       } else {
-        result = await ApiService.createTemplate(formData);
+        result = await ApiService.createTemplate(templateData);
       }
       
       onSave?.(result);
@@ -231,7 +317,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             disabled={loading}
           />
           {errors.name && (
-            <span className="error-message">⚠️ {errors.name}</span>
+            <span className="error-message"> {errors.name}</span>
           )}
         </div>
 
@@ -257,7 +343,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
               ))}
             </select>
             {errors.category && (
-              <span className="error-message">⚠️ {errors.category}</span>
+              <span className="error-message"> {errors.category}</span>
             )}
           </div>
 
@@ -281,7 +367,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
               ))}
             </select>
             {errors.department && (
-              <span className="error-message">⚠️ {errors.department}</span>
+              <span className="error-message"> {errors.department}</span>
             )}
           </div>
         </div>
@@ -303,7 +389,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             disabled={loading}
           />
           {errors.description && (
-            <span className="error-message">⚠️ {errors.description}</span>
+            <span className="error-message"> {errors.description}</span>
           )}
         </div>
 
@@ -316,25 +402,57 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             type="file"
             id="file"
             name="file"
-            onChange={handleInputChange}
+            onChange={handleFileChange}
             onBlur={handleBlur}
             className={`form-file ${errors.file ? 'form-file--error' : ''}`}
             disabled={loading}
             accept=".doc,.docx,.pdf,.txt,.rtf"
           />
+          
+          {/* Информация о файле */}
           {formData.file && (
             <div className="file-info">
-              📎 {formData.file.name} ({(formData.file.size / 1024 / 1024).toFixed(2)} MB)
+              <strong>{formData.file.name}</strong> ({(formData.file.size / 1024).toFixed(2)} KB)
             </div>
           )}
+          
           {template?.file && !formData.file && (
             <div className="file-info">
-              📎 Текущий файл: {template.file.originalName}
+              <strong>Текущий файл:</strong> {template.file.originalName}
             </div>
           )}
-          {errors.file && (
-            <span className="error-message">⚠️ {errors.file}</span>
+          
+          {/* Предпросмотр содержимого файла */}
+          {filePreview && (
+            <div className="file-preview">
+              <h4>Предпросмотр содержимого:</h4>
+              <div className="preview-content">
+                <pre>{filePreview}</pre>
+                {formData.content && formData.content.length > 500 && (
+                  <div className="preview-truncated">
+                    ... (показано {filePreview.length} из {formData.content.length} символов)
+                  </div>
+                )}
+              </div>
+              <div className="preview-info">
+                {formData.content && formData.content.includes('[Word document') && (
+                  <div className="preview-warning">
+                    ⓘ Word документы не поддерживают предпросмотр содержимого
+                  </div>
+                )}
+                {formData.content && formData.content.includes('[PDF document') && (
+                  <div className="preview-warning">
+                    ⓘ PDF документы не поддерживают предпросмотр содержимого
+                  </div>
+                )}
+              </div>
+            </div>
           )}
+          
+          {errors.file && (
+            <span className="error-message"> {errors.file}</span>
+          )}
+          
           <div className="form-hint">
             Поддерживаемые форматы: DOC, DOCX, PDF, TXT, RTF (макс. 10MB)
           </div>
@@ -363,7 +481,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
             </button>
           </div>
           {errors.tags && (
-            <span className="error-message">⚠️ {errors.tags}</span>
+            <span className="error-message"> {errors.tags}</span>
           )}
           
           {formData.tags.length > 0 && (
@@ -391,7 +509,7 @@ function TemplateForm({ template, onSave, onCancel, isEdit = false }) {
         {/* Ошибка отправки */}
         {errors.submit && (
           <div className="error-message error-message--submit">
-            ⚠️ {errors.submit}
+             {errors.submit}
           </div>
         )}
 

@@ -4,6 +4,8 @@ import TemplateList from './components/TemplateList/TemplateList';
 import TemplateForm from './components/TemplateForm/TemplateForm';
 import VersionHistory from './components/VersionHistory/VersionHistory';
 import SearchTemplates from './components/SearchTemplates/SearchTemplates';
+import TemplateDetail from './components/TemplateDetail/TemplateDetail';
+import ApiService from './services/api';
 
 function App() {
   const [view, setView] = useState('list');
@@ -48,29 +50,50 @@ function App() {
           <div className="detail-view">
             <div className="detail-header">
               <button onClick={() => setView('list')} className="btn-back">
-                ← Назад к списку
-              </button>
-              <h2>{selectedTemplate.name}</h2>
-              <button 
-                onClick={() => setView('edit')}
-                className="btn-edit"
-              >
-                 Редактировать
+                ← Back to list
               </button>
             </div>
             
-            <div className="template-info">
-              <p><strong>Описание:</strong> {selectedTemplate.description}</p>
-              <p><strong>Категория:</strong> {selectedTemplate.category}</p>
-              <p><strong>Отдел:</strong> {selectedTemplate.department}</p>
-              <p><strong>Статус:</strong> {selectedTemplate.metadata.status}</p>
-              <p><strong>Версия:</strong> {selectedTemplate.metadata.version}</p>
-            </div>
+            <TemplateDetail 
+              template={selectedTemplate}
+              onEdit={() => setView('edit')}
+              onDelete={async () => {
+                if (window.confirm('Delete this template?')) {
+                  try {
+                    await ApiService.deleteTemplate(selectedTemplate._id);
+                    setView('list');
+                    alert('Template deleted');
+                  } catch (error) {
+                    alert('Error deleting template');
+                  }
+                }
+              }}
+              onDownload={async () => {
+                try {
+                  // Если нужно скачать контент, а не файл
+                  const content = selectedTemplate.content || '';
+                  const blob = new Blob([content], { type: 'text/plain' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${selectedTemplate.name}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                } catch (error) {
+                  alert('Error downloading file');
+                }
+              }}
+            />
             
-            <VersionHistory templateId={selectedTemplate._id} />
+            <VersionHistory 
+              templateId={selectedTemplate._id} 
+              currentContent={selectedTemplate.content}
+              previousContent={selectedTemplate.previousContent}
+            />
           </div>
         ) : null;
-      
       case 'edit':
         return selectedTemplate ? (
           <TemplateForm 
