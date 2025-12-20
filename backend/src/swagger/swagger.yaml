@@ -1,0 +1,962 @@
+openapi: 3.0.0
+info:
+  title: Template Management API
+  description: API для управления шаблонами документов с поддержкой версий, поиска и хранения файлов
+  version: 1.0.0
+  contact:
+    name: Template System Team
+    email: support@template-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.template-system.com/api
+    description: Production server
+tags:
+  - name: Templates
+    description: Основные операции с шаблонами
+  - name: Search
+    description: Поиск и фильтрация шаблонов
+  - name: Versions
+    description: Управление версиями шаблонов
+  - name: Files
+    description: Работа с файлами шаблонов
+  - name: Statistics
+    description: Статистика и аналитика
+  - name: Metadata
+    description: Метаданные и справочники
+  - name: Health
+    description: Проверка состояния системы
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Проверка состояния системы
+      description: Возвращает статус всех зависимостей системы (MongoDB, Elasticsearch)
+      responses:
+        '200':
+          description: Система работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      mongodb:
+                        type: string
+                        example: connected
+                      elasticsearch:
+                        type: string
+                        example: connected
+
+  /templates:
+    post:
+      tags:
+        - Templates
+      summary: Создать новый шаблон
+      description: Создает новый шаблон с загрузкой файла. Автоматически создает первую версию.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - name
+                - description
+                - category
+                - department
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Файл шаблона (PDF, DOCX, XLSX и др.)
+                name:
+                  type: string
+                  description: Название шаблона
+                description:
+                  type: string
+                  description: Описание шаблона
+                category:
+                  type: string
+                  description: Категория шаблона
+                department:
+                  type: string
+                  description: Отдел
+                tags:
+                  type: string
+                  description: Теги в формате JSON массива или через запятую
+                  example: '["tag1", "tag2"]'
+                author:
+                  type: string
+                  description: Автор шаблона
+                  default: system
+                status:
+                  type: string
+                  enum: [draft, approved, deprecated]
+                  description: Статус шаблона
+                  default: draft
+      responses:
+        '201':
+          description: Шаблон успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Ошибка валидации или отсутствует файл
+        '500':
+          description: Внутренняя ошибка сервера
+
+    get:
+      tags:
+        - Templates
+        - Search
+      summary: Получить список шаблонов с пагинацией
+      description: Возвращает список шаблонов с поддержкой фильтрации, сортировки и пагинации
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Номер страницы
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Количество элементов на странице
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Фильтр по категории
+        - name: department
+          in: query
+          schema:
+            type: string
+          description: Фильтр по отделу
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, deprecated]
+          description: Фильтр по статусу
+      responses:
+        '200':
+          description: Список шаблонов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+                  totalPages:
+                    type: integer
+                  currentPage:
+                    type: integer
+                  total:
+                    type: integer
+
+  /templates/search:
+    get:
+      tags:
+        - Search
+      summary: Поиск шаблонов (базовый)
+      description: Полнотекстовый поиск шаблонов с использованием Elasticsearch
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Поисковый запрос
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Номер страницы
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Количество результатов
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Фильтр по категории
+        - name: department
+          in: query
+          schema:
+            type: string
+          description: Фильтр по отделу
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, deprecated]
+          description: Фильтр по статусу
+      responses:
+        '200':
+          description: Результаты поиска
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  took:
+                    type: integer
+                    description: Время выполнения поиска в миллисекундах
+
+  /templates/search/enhanced:
+    get:
+      tags:
+        - Search
+      summary: Расширенный поиск шаблонов
+      description: Расширенный поиск с поддержкой подсветки результатов, нечеткого поиска и выбора полей
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Поисковый запрос
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Фильтр по категории
+        - name: department
+          in: query
+          schema:
+            type: string
+          description: Фильтр по отделу
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, deprecated]
+          description: Фильтр по статусу
+        - name: tags
+          in: query
+          schema:
+            type: string
+          description: Теги через запятую
+        - name: highlight
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Включить подсветку результатов
+        - name: fuzzy
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Включить нечеткий поиск
+        - name: fields
+          in: query
+          schema:
+            type: string
+            default: 'name,description,tags'
+          description: Поля для поиска через запятую
+      responses:
+        '200':
+          description: Результаты расширенного поиска
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  hits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        highlight:
+                          type: object
+                          properties:
+                            name:
+                              type: array
+                              items:
+                                type: string
+                            description:
+                              type: array
+                              items:
+                                type: string
+
+  /templates/autocomplete:
+    get:
+      tags:
+        - Search
+      summary: Автодополнение для поиска
+      description: Возвращает подсказки для автодополнения по заданному полю
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Часть текста для автодополнения
+        - name: field
+          in: query
+          schema:
+            type: string
+            enum: [name, category, tags]
+            default: name
+          description: Поле для автодополнения
+      responses:
+        '200':
+          description: Список подсказок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /templates/stats:
+    get:
+      tags:
+        - Statistics
+      summary: Статистика по шаблонам
+      description: Возвращает статистическую информацию о шаблонах
+      responses:
+        '200':
+          description: Статистика
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  byStatus:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  byCategory:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        count:
+                          type: integer
+                  byDepartment:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        count:
+                          type: integer
+                  totalTemplates:
+                    type: integer
+                  totalVersions:
+                    type: integer
+                  lastUpdated:
+                    type: string
+                    format: date-time
+
+  /templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Получить шаблон по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      responses:
+        '200':
+          description: Шаблон найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Шаблон не найден
+
+    put:
+      tags:
+        - Templates
+      summary: Обновить шаблон
+      description: Обновляет шаблон с возможностью загрузки новой версии файла
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Новый файл шаблона (если нужно обновить)
+                name:
+                  type: string
+                  description: Новое название
+                description:
+                  type: string
+                  description: Новое описание
+                category:
+                  type: string
+                  description: Новая категория
+                department:
+                  type: string
+                  description: Новый отдел
+                tags:
+                  type: string
+                  description: Новые теги
+                author:
+                  type: string
+                  description: Автор изменений
+                status:
+                  type: string
+                  enum: [draft, approved, deprecated]
+                  description: Новый статус
+                changes:
+                  type: string
+                  description: Описание изменений для версии
+                createVersion:
+                  type: boolean
+                  description: Принудительное создание новой версии
+      responses:
+        '200':
+          description: Шаблон обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Шаблон не найден
+
+    delete:
+      tags:
+        - Templates
+      summary: Удалить шаблон
+      description: Удаляет шаблон и все связанные версии
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      responses:
+        '200':
+          description: Шаблон удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Шаблон не найден
+
+  /templates/{id}/download:
+    get:
+      tags:
+        - Files
+      summary: Скачать файл шаблона
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      responses:
+        '200':
+          description: Файл для скачивания
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: Имя файла для скачивания
+        '404':
+          description: Шаблон или файл не найден
+
+  /templates/{id}/preview:
+    get:
+      tags:
+        - Files
+      summary: Предпросмотр файла
+      description: Возвращает файл для предпросмотра (поддерживаются PDF, изображения, текстовые файлы)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      responses:
+        '200':
+          description: Файл для предпросмотра
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: MIME-тип файла
+        '404':
+          description: Шаблон не найден
+        '415':
+          description: Тип файла не поддерживается для предпросмотра
+
+  /templates/{id}/versions:
+    get:
+      tags:
+        - Versions
+      summary: Получить версии шаблона
+      description: Возвращает список всех версий шаблона
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Номер страницы
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Количество версий на странице
+      responses:
+        '200':
+          description: Список версий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateVersion'
+                  totalPages:
+                    type: integer
+                  currentPage:
+                    type: integer
+                  total:
+                    type: integer
+
+    post:
+      tags:
+        - Versions
+      summary: Загрузить новую версию файла
+      description: Создает новую версию шаблона с новым файлом
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Новый файл версии
+                changes:
+                  type: string
+                  description: Описание изменений
+                  default: New version uploaded
+      responses:
+        '200':
+          description: Новая версия создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+
+  /templates/{id}/versions/{versionId}/restore:
+    post:
+      tags:
+        - Versions
+      summary: Восстановить версию шаблона
+      description: Восстанавливает указанную версию как текущую
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID версии для восстановления
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                author:
+                  type: string
+                  description: Автор восстановления
+      responses:
+        '200':
+          description: Версия восстановлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  template:
+                    $ref: '#/components/schemas/Template'
+                  restoredVersion:
+                    type: integer
+                  newVersion:
+                    type: integer
+                  success:
+                    type: boolean
+        '404':
+          description: Шаблон или версия не найдены
+
+  /templates/{id}/metadata:
+    get:
+      tags:
+        - Metadata
+      summary: Получить метаданные шаблона
+      description: Возвращает только метаданные шаблона без файла
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      responses:
+        '200':
+          description: Метаданные шаблона
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateMetadata'
+        '404':
+          description: Шаблон не найден
+
+  /templates/{id}/status:
+    patch:
+      tags:
+        - Templates
+      summary: Обновить статус шаблона
+      description: Изменяет статус шаблона (draft, approved, deprecated)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [draft, approved, deprecated]
+      responses:
+        '200':
+          description: Статус обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Неверный статус
+        '404':
+          description: Шаблон не найден
+
+  /categories:
+    get:
+      tags:
+        - Metadata
+      summary: Получить все категории
+      description: Возвращает список всех уникальных категорий
+      responses:
+        '200':
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /departments:
+    get:
+      tags:
+        - Metadata
+      summary: Получить все отделы
+      description: Возвращает список всех уникальных отделов
+      responses:
+        '200':
+          description: Список отделов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /tags:
+    get:
+      tags:
+        - Metadata
+      summary: Получить популярные теги
+      description: Возвращает самые часто используемые теги
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Максимальное количество тегов
+      responses:
+        '200':
+          description: Список популярных тегов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tag:
+                      type: string
+                    count:
+                      type: integer
+
+components:
+  schemas:
+    Template:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Уникальный идентификатор шаблона
+        name:
+          type: string
+          description: Название шаблона
+        description:
+          type: string
+          description: Описание шаблона
+        category:
+          type: string
+          description: Категория
+        department:
+          type: string
+          description: Отдел
+        tags:
+          type: array
+          items:
+            type: string
+          description: Теги
+        file:
+          $ref: '#/components/schemas/FileInfo'
+        metadata:
+          $ref: '#/components/schemas/TemplateMetadata'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TemplateMetadata:
+      type: object
+      properties:
+        author:
+          type: string
+          description: Автор шаблона
+        version:
+          type: integer
+          description: Текущая версия
+        status:
+          type: string
+          enum: [draft, approved, deprecated]
+          description: Статус шаблона
+        lastModified:
+          type: string
+          format: date-time
+          description: Дата последнего изменения
+        checksum:
+          type: string
+          description: Контрольная сумма файла
+
+    FileInfo:
+      type: object
+      properties:
+        originalName:
+          type: string
+          description: Оригинальное имя файла
+        storedName:
+          type: string
+          description: Имя файла в хранилище
+        mimeType:
+          type: string
+          description: MIME-тип файла
+        size:
+          type: integer
+          description: Размер файла в байтах
+        url:
+          type: string
+          description: URL для доступа к файлу
+        checksum:
+          type: string
+          description: MD5 хеш файла
+
+    TemplateVersion:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Уникальный идентификатор версии
+        templateId:
+          type: string
+          description: ID родительского шаблона
+        version:
+          type: integer
+          description: Номер версии
+        changes:
+          type: string
+          description: Описание изменений
+        file:
+          $ref: '#/components/schemas/FileInfo'
+        metadata:
+          type: object
+          properties:
+            author:
+              type: string
+            status:
+              type: string
+            created:
+              type: string
+              format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID шаблона
+        name:
+          type: string
+          description: Название шаблона
+        description:
+          type: string
+          description: Описание
+        category:
+          type: string
+        department:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        author:
+          type: string
+        lastModified:
+          type: string
+          format: date-time
+        score:
+          type: number
+          description: Релевантность в результатах поиска
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
