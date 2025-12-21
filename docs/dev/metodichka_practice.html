@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Методические указания к практике · Росатом</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #030a14;
+      --panel: rgba(9, 24, 42, 0.8);
+      --accent: #7bffb7;
+      --accent-soft: rgba(123, 255, 183, 0.15);
+      --text: #e6f2ff;
+      --code-bg: rgba(0, 20, 40, 0.6);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', 'Exo 2', system-ui, -apple-system, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at 20% 20%, rgba(16, 60, 94, 0.45), transparent 55%),
+        radial-gradient(circle at 80% 0%, rgba(11, 88, 104, 0.3), transparent 45%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 40px clamp(20px, 5vw, 90px);
+    }
+    header {
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      animation: fadeInDown 0.8s ease both;
+    }
+    header h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+    }
+    header p {
+      color: var(--accent);
+      font-size: 18px;
+      max-width: 520px;
+    }
+    .slides {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+    }
+    .slide {
+      backdrop-filter: blur(16px);
+      background: var(--panel);
+      border: 1px solid rgba(123, 255, 183, 0.3);
+      border-radius: 24px;
+      padding: 26px;
+      position: relative;
+      overflow: hidden;
+      min-height: 280px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.38);
+      transition: transform 0.5s ease, border-color 0.5s ease;
+      animation: fadeInUp 0.9s ease both;
+    }
+    .slide::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(123, 255, 183, 0.1));
+      pointer-events: none;
+    }
+    .slide:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+    }
+    .slide {
+      cursor: pointer;
+    }
+    .show-code-btn {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-block;
+    }
+    .show-code-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.3s ease;
+    }
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 24px;
+      padding: 0;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: 1200px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      animation: slideUp 0.4s ease;
+    }
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(123, 255, 183, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 24px;
+      color: var(--accent);
+      margin: 0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 32px;
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    .modal-close:hover {
+      background: var(--accent-soft);
+      transform: rotate(90deg);
+    }
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+      max-height: calc(90vh - 120px);
+    }
+    .code-section {
+      margin-bottom: 24px;
+    }
+    .code-section h3 {
+      color: var(--accent);
+      font-size: 18px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(123, 255, 183, 0.2);
+    }
+    .code-full {
+      background: var(--code-bg);
+      border: 1px solid rgba(123, 255, 183, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      color: #a8d5ff;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      position: relative;
+    }
+    .code-full::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+    .code-full::-webkit-scrollbar-track {
+      background: rgba(0, 20, 40, 0.5);
+      border-radius: 4px;
+    }
+    .code-full::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 4px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 6px 12px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .copy-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .code-full {
+      padding-top: 45px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .slide h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .slide h3 {
+      font-size: 16px;
+      color: var(--accent);
+      margin-bottom: 18px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .slide ul {
+      list-style: none;
+    }
+    .slide li {
+      padding-left: 28px;
+      position: relative;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    .slide li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(123, 255, 183, 0.4);
+      background: var(--accent-soft);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .kpi {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(5, 14, 24, 0.8);
+      border: 1px solid rgba(123, 255, 183, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(123, 255, 183, 0.15), transparent 60%);
+    }
+    .kpi strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 15px;
+      letter-spacing: 0.08em;
+    }
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid rgba(123, 255, 183, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      color: #a8d5ff;
+    }
+    .timeline {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+    .timeline-item span {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .tech-item {
+      padding: 6px 12px;
+      background: rgba(123, 255, 183, 0.1);
+      border: 1px solid rgba(123, 255, 183, 0.3);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      color: #9ab2c4;
+      font-size: 14px;
+    }
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Методические указания к практике</h1>
+      <p>Полный обучающий материал для команд разработки · 3 проекта · 8 недель</p>
+    </div>
+    <div>
+      <div class="chip">Росатом</div>
+      <div class="chip">2025</div>
+    </div>
+  </header>
+
+  <section class="slides">
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Автоматизированная система нормоконтроля</h2>
+      <div class="meta">
+        <span class="chip">AI</span>
+        <span class="chip">OCR</span>
+        <span class="chip">Quality</span>
+      </div>
+      <ul>
+        <li>Интеллектуальная загрузка PDF/DOCX/DWG/XLSX</li>
+        <li>Многоуровневая проверка на соответствие нормативам</li>
+        <li>AI-помощник для автоматического исправления ошибок</li>
+        <li>Интеграция с CAD-системами и СЭД</li>
+      </ul>
+      <div class="kpi">
+        <strong>Цель</strong>
+        Сокращение времени проверки с 3-5 дней до 2-4 часов, обнаружение 95% нарушений
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-desc')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Технологический стек</h2>
+      <div class="tech-stack">
+        <span class="tech-item">Python 3.9+</span>
+        <span class="tech-item">FastAPI</span>
+        <span class="tech-item">React 18</span>
+        <span class="tech-item">PostgreSQL</span>
+        <span class="tech-item">Redis</span>
+        <span class="tech-item">Celery</span>
+        <span class="tech-item">Docker</span>
+        <span class="tech-item">spaCy</span>
+        <span class="tech-item">Tesseract OCR</span>
+      </div>
+      <div class="kpi">
+        <strong>Инфраструктура</strong>
+        Docker Compose · Nginx · GitHub Actions · MinIO для хранения файлов
+      </div>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Неделя 1: Подготовка</h2>
+      <ul>
+        <li>Настройка окружения: tesseract-ocr, poppler-utils, opencv-python</li>
+        <li>Создание структуры проекта: backend/app, frontend/src</li>
+        <li>Базовая конфигурация FastAPI с CORS и middleware</li>
+        <li>Подключение PostgreSQL и Redis</li>
+      </ul>
+      <div class="code-block">
+fastapi==0.104.1<br>
+sqlalchemy==2.0.23<br>
+celery==5.3.4<br>
+spacy==3.7.2
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week1')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Неделя 2: Модели и обработка</h2>
+      <ul>
+        <li>Модели Document и Standard в SQLAlchemy</li>
+        <li>Сервис DocumentProcessor для извлечения текста</li>
+        <li>OCR обработка PDF через pytesseract и pdf2image</li>
+        <li>Парсинг DOCX через python-docx</li>
+      </ul>
+      <div class="kpi">
+        <strong>Ключевые компоненты</strong>
+        Извлечение текста · Сохранение метаданных · Подготовка к валидации
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week2')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Неделя 3: Валидация стандартов</h2>
+      <ul>
+        <li>StandardValidator: проверка терминологии и структуры</li>
+        <li>Автоматическое обнаружение некорректных терминов</li>
+        <li>Проверка ссылок на ГОСТ, ОСТ, НП, РД, СТО</li>
+        <li>Валидация актуальности нормативных документов</li>
+      </ul>
+      <div class="kpi">
+        <strong>Результат</strong>
+        Структурированный список нарушений с приоритетами и рекомендациями
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week3')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Неделя 4: AI-компоненты</h2>
+      <ul>
+        <li>NLPProcessor: анализ структуры документа через spaCy</li>
+        <li>Извлечение разделов и проверка полноты</li>
+        <li>TfidfVectorizer для семантического анализа</li>
+        <li>Генерация рекомендаций по улучшению документа</li>
+      </ul>
+      <div class="kpi">
+        <strong>ML модели</strong>
+        scikit-learn · spaCy ru_core_news_sm · Косинусное сходство
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week4')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Неделя 5: React Frontend</h2>
+      <ul>
+        <li>Компонент DocumentUpload с прогресс-баром</li>
+        <li>ViolationsList с цветовой индикацией приоритетов</li>
+        <li>Интеграция с Material-UI и Redux Toolkit</li>
+        <li>Отображение результатов проверки в реальном времени</li>
+      </ul>
+      <div class="kpi">
+        <strong>UX</strong>
+        Drag & drop загрузка · Визуализация нарушений · Экспорт отчетов
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week5')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 1</h3>
+      <h2>Недели 6-8: Интеграция и тесты</h2>
+      <ul>
+        <li>Docker конфигурация: backend, frontend, postgres, redis, nginx</li>
+        <li>Нагрузочное тестирование с aiohttp</li>
+        <li>API документация через FastAPI /docs</li>
+        <li>Развертывание и мониторинг через docker-compose</li>
+      </ul>
+      <div class="kpi">
+        <strong>Финальная стадия</strong>
+        Полнофункциональный прототип · Документация · Готовность к внедрению
+      </div>
+      <button class="show-code-btn" onclick="openModal('p1-week6-8')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Платформа управления ресурсами</h2>
+      <div class="meta">
+        <span class="chip">Resources</span>
+        <span class="chip">Optimization</span>
+        <span class="chip">Gantt</span>
+      </div>
+      <ul>
+        <li>Визуализация загрузки сотрудников через Gantt-диаграммы</li>
+        <li>Автоматическое распределение задач по компетенциям</li>
+        <li>Прогнозирование сроков выполнения проектов</li>
+        <li>Интеграция с системами учета рабочего времени</li>
+      </ul>
+      <div class="kpi">
+        <strong>Цель</strong>
+        +25% утилизации ресурсов · –40% времени планирования · –30% перегрузки
+      </div>
+      <button class="show-code-btn" onclick="openModal('p2-desc')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Технологический стек</h2>
+      <div class="tech-stack">
+        <span class="tech-item">Django 4.2</span>
+        <span class="tech-item">DRF</span>
+        <span class="tech-item">Angular 16</span>
+        <span class="tech-item">PostgreSQL</span>
+        <span class="tech-item">Redis</span>
+        <span class="tech-item">Celery</span>
+        <span class="tech-item">networkx</span>
+        <span class="tech-item">scipy</span>
+      </div>
+      <div class="kpi">
+        <strong>Алгоритмы</strong>
+        Оптимизация распределения · Прогнозирование · Графовые модели
+      </div>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Недели 1-2: Django Backend</h2>
+      <ul>
+        <li>Модели Employee, Department, Project, ProjectPhase</li>
+        <li>Django REST Framework ViewSets для CRUD операций</li>
+        <li>Фильтрация и поиск через django-filter</li>
+        <li>Сериализаторы для API endpoints</li>
+      </ul>
+      <div class="code-block">
+Django==4.2.7<br>
+djangorestframework==3.14.0<br>
+django-filter==23.3<br>
+psycopg2-binary==2.9.9
+      </div>
+      <button class="show-code-btn" onclick="openModal('p2-week1-2')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Неделя 3: Алгоритмы оптимизации</h2>
+      <ul>
+        <li>ResourceOptimizer: матрица компетенций сотрудников</li>
+        <li>Решение задачи назначения через scipy.optimize</li>
+        <li>ProjectForecaster: прогнозирование через RandomForest</li>
+        <li>Анализ исторических данных для улучшения точности</li>
+      </ul>
+      <div class="kpi">
+        <strong>Оптимизация</strong>
+        Венгерский алгоритм · ML-прогнозы · Автоматическое распределение
+      </div>
+      <button class="show-code-btn" onclick="openModal('p2-week3')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Неделя 4: Angular Frontend</h2>
+      <ul>
+        <li>Модуль Employees с таблицей и фильтрами</li>
+        <li>Компонент GanttChart для визуализации проектов</li>
+        <li>Material Design компоненты и темизация</li>
+        <li>Интеграция с NgRx для управления состоянием</li>
+      </ul>
+      <div class="kpi">
+        <strong>UI/UX</strong>
+        Интерактивные диаграммы · Drag & drop · Реал-тайм обновления
+      </div>
+      <button class="show-code-btn" onclick="openModal('p2-week4')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 2</h3>
+      <h2>Недели 5-8: Интеграция</h2>
+      <ul>
+        <li>Docker Compose: backend, frontend, postgres, redis, celery</li>
+        <li>Unit и интеграционные тесты Django</li>
+        <li>API документация через drf-spectacular</li>
+        <li>Сервис аналитики: отчеты по утилизации ресурсов</li>
+      </ul>
+      <div class="kpi">
+        <strong>Результат</strong>
+        Полнофункциональная платформа · Дашборды · API для интеграций
+      </div>
+      <button class="show-code-btn" onclick="openModal('p2-week5-8')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Система контроля версий и шаблонов</h2>
+      <div class="meta">
+        <span class="chip">Docs</span>
+        <span class="chip">Search</span>
+        <span class="chip">Versioning</span>
+      </div>
+      <ul>
+        <li>Централизованное хранение шаблонов документов</li>
+        <li>Умный поиск через Elasticsearch</li>
+        <li>Контроль версий с историей изменений</li>
+        <li>Интеграция с CAD-системами</li>
+      </ul>
+      <div class="kpi">
+        <strong>Цель</strong>
+        –60% времени поиска · –45% ошибок · +35% скорости подготовки
+      </div>
+      <button class="show-code-btn" onclick="openModal('p3-desc')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Технологический стек</h2>
+      <div class="tech-stack">
+        <span class="tech-item">Node.js 18</span>
+        <span class="tech-item">Express</span>
+        <span class="tech-item">React 18</span>
+        <span class="tech-item">MongoDB</span>
+        <span class="tech-item">Elasticsearch</span>
+        <span class="tech-item">MinIO</span>
+        <span class="tech-item">Redis</span>
+        <span class="tech-item">TypeScript</span>
+      </div>
+      <div class="kpi">
+        <strong>Хранилище</strong>
+        MongoDB для метаданных · MinIO/S3 для файлов · Elasticsearch для поиска
+      </div>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Недели 1-2: Node.js Backend</h2>
+      <ul>
+        <li>Модели Template и TemplateVersion в Mongoose</li>
+        <li>FileStorageService: локальное и S3 хранение</li>
+        <li>Контроллеры для CRUD операций с шаблонами</li>
+        <li>Индексация в Elasticsearch при создании/обновлении</li>
+      </ul>
+      <div class="code-block">
+express mongoose cors<br>
+@elastic/elasticsearch<br>
+multer redis
+      </div>
+      <button class="show-code-btn" onclick="openModal('p3-week1-2')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Неделя 3: Поиск и хранение</h2>
+      <ul>
+        <li>SearchService: полнотекстовый поиск через Elasticsearch</li>
+        <li>Фильтрация по категориям, отделам, тегам</li>
+        <li>Подсветка результатов поиска (highlighting)</li>
+        <li>MinIO интеграция для объектного хранилища</li>
+      </ul>
+      <div class="kpi">
+        <strong>Поиск</strong>
+        Multi-match запросы · Fuzzy search · Сортировка по релевантности
+      </div>
+      <button class="show-code-btn" onclick="openModal('p3-week3')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Неделя 4: React Frontend</h2>
+      <ul>
+        <li>TemplateManager: сетка карточек с шаблонами</li>
+        <li>TemplateFormDialog: создание и редактирование</li>
+        <li>AdvancedSearch: расширенные фильтры и теги</li>
+        <li>Интеграция с React Query для кеширования</li>
+      </ul>
+      <div class="kpi">
+        <strong>Функционал</strong>
+        Загрузка файлов · Версионирование · История изменений
+      </div>
+      <button class="show-code-btn" onclick="openModal('p3-week4')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Проект 3</h3>
+      <h2>Недели 5-8: Финальная стадия</h2>
+      <ul>
+        <li>Docker Compose: backend, frontend, mongodb, elasticsearch, redis, kibana</li>
+        <li>Unit тесты API через supertest</li>
+        <li>Swagger документация для API</li>
+        <li>AnalyticsService: статистика использования шаблонов</li>
+      </ul>
+      <div class="kpi">
+        <strong>Мониторинг</strong>
+        Kibana для Elasticsearch · Логирование · Резервное копирование
+      </div>
+      <button class="show-code-btn" onclick="openModal('p3-week5-8')">📋 Показать полный код</button>
+    </article>
+
+    <article class="slide">
+      <h3>Общее</h3>
+      <h2>Ключевые принципы разработки</h2>
+      <ul>
+        <li>Контейнеризация всех сервисов через Docker</li>
+        <li>CI/CD пайплайны через GitHub Actions</li>
+        <li>Покрытие тестами: unit, integration, load testing</li>
+        <li>Документация API через Swagger/OpenAPI</li>
+        <li>Мониторинг и логирование на всех уровнях</li>
+      </ul>
+      <div class="kpi">
+        <strong>Best Practices</strong>
+        Clean Architecture · SOLID принципы · Code Review · Agile методология
+      </div>
+    </article>
+
+    <article class="slide">
+      <h3>Результат</h3>
+      <h2>Ожидаемые достижения</h2>
+      <ul>
+        <li>3 полнофункциональных прототипа систем</li>
+        <li>Полная техническая документация и API справка</li>
+        <li>Готовность к развертыванию в production</li>
+        <li>Оценка экономического эффекта от внедрения</li>
+        <li>Кадровый резерв с практическим опытом</li>
+      </ul>
+      <div class="kpi">
+        <strong>Метрики успеха</strong>
+        Все проекты на стадии рабочего прототипа · Измеримые улучшения процессов
+      </div>
+    </article>
+  </section>
+
+  <footer>
+    Методические указания к практике · Росатом Digital · 2025
+  </footer>
+
+  <!-- Модальные окна с полным кодом -->
+  <div id="modal-container"></div>
+
+  <script>
+    const codeData = {
+      'p1-desc': {
+        title: 'Проект 1: Автоматизированная система нормоконтроля - Описание',
+        content: `
+          <div class="code-section">
+            <h3>Описание проекта</h3>
+            <p><strong>Цель:</strong> Разработать систему автоматической проверки проектной документации на соответствие стандартам Росатома</p>
+            <p><strong>Основные функции:</strong></p>
+            <ul>
+              <li>Интеллектуальная загрузка документов</li>
+              <li>Многоуровневая проверка на соответствие нормативам</li>
+              <li>AI-помощник для автоматического исправления ошибок</li>
+              <li>Интеграция с CAD-системами</li>
+            </ul>
+          </div>
+        `
+      },
+      'p1-week1': {
+        title: 'Проект 1: Неделя 1 - Подготовка и базовая настройка',
+        content: `
+          <div class="code-section">
+            <h3>День 1-2: Настройка окружения</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# Установка специализированных зависимостей
+sudo apt install -y \\
+    tesseract-ocr tesseract-ocr-rus \\
+    poppler-utils \\
+    libgl1-mesa-glx \\
+    python3-opencv
+
+# Создание проекта
+mkdir norm-control-system && cd norm-control-system
+python3 -m venv venv
+source venv/bin/activate
+
+# requirements.txt
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+celery==5.3.4
+redis==5.0.1
+python-multipart==0.0.6
+python-docx==1.1.0
+pdf2image==1.16.3
+pytesseract==0.3.10
+opencv-python==4.8.1.78
+spacy==3.7.2
+scikit-learn==1.3.2
+            </div>
+          </div>
+          <div class="code-section">
+            <h3>День 3-4: Базовая структура проекта</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+norm-control-system/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── config.py
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile
+├── docker-compose.yml
+└── README.md
+            </div>
+          </div>
+          <div class="code-section">
+            <h3>День 5: FastAPI приложение</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/app/main.py
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+
+from .models import Base, Document
+from .services.document_processor import DocumentProcessor
+
+app = FastAPI(title="Norm Control System", version="1.0.0")
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Database
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost/norm_control")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    if not file.filename.endswith(('.pdf', '.docx', '.dwg')):
+        raise HTTPException(400, "Unsupported file format")
+    
+    processor = DocumentProcessor()
+    result = await processor.process_document(file)
+    
+    return {"message": "Document processed", "violations": result.violations}
+
+@app.get("/documents")
+async def list_documents():
+    db = SessionLocal()
+    documents = db.query(Document).all()
+    db.close()
+    return documents
+            </div>
+          </div>
+        `
+      },
+      'p1-week2': {
+        title: 'Проект 1: Неделя 2 - Модели данных и документооборот',
+        content: `
+          <div class="code-section">
+            <h3>Модели данных</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/app/models/__init__.py
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, Text
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+Base = declarative_base()
+
+class Document(Base):
+    __tablename__ = "documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)
+    original_name = Column(String(255))
+    file_type = Column(String(10))
+    file_size = Column(Integer)
+    status = Column(String(50), default="uploaded")
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    
+    # Результаты проверки
+    violations = Column(JSON)  # Список нарушений
+    compliance_score = Column(Integer)  # Процент соответствия
+    checked_by = Column(String(100))
+    check_date = Column(DateTime)
+    
+    # Метаданные документа
+    metadata = Column(JSON)
+
+class Standard(Base):
+    __tablename__ = "standards"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True)  # НП-001, ГОСТ Р и т.д.
+    name = Column(String(255))
+    description = Column(Text)
+    category = Column(String(100))
+    requirements = Column(JSON)  # Структурированные требования
+    is_active = Column(Boolean, default=True)
+            </div>
+          </div>
+          <div class="code-section">
+            <h3>Сервис обработки документов</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/app/services/document_processor.py
+import os
+from typing import List, Dict
+from pdf2image import convert_from_path
+import pytesseract
+from docx import Document as DocxDocument
+import cv2
+import numpy as np
+
+class DocumentProcessor:
+    def __init__(self):
+        self.supported_formats = ['.pdf', '.docx', '.dwg']
+    
+    async def process_document(self, file) -> Dict:
+        """Основной метод обработки документа"""
+        # Сохранение файла
+        file_path = await self._save_file(file)
+        
+        # Извлечение текста в зависимости от формата
+        text_content = await self._extract_text(file_path)
+        
+        # Проверка на соответствие стандартам
+        violations = await self._check_standards(text_content)
+        
+        # Анализ содержания
+        content_analysis = await self._analyze_content(text_content)
+        
+        return {
+            'text_content': text_content,
+            'violations': violations,
+            'content_analysis': content_analysis,
+            'compliance_score': self._calculate_score(violations)
+        }
+    
+    async def _extract_text(self, file_path: str) -> str:
+        """Извлечение текста из различных форматов"""
+        if file_path.endswith('.pdf'):
+            return await self._extract_from_pdf(file_path)
+        elif file_path.endswith('.docx'):
+            return await self._extract_from_docx(file_path)
+        elif file_path.endswith('.dwg'):
+            return await self._extract_from_dwg(file_path)
+    
+    async def _extract_from_pdf(self, file_path: str) -> str:
+        """Извлечение текста из PDF"""
+        try:
+            # Конвертация PDF в изображения
+            images = convert_from_path(file_path)
+            text = ""
+            
+            for image in images:
+                # OCR обработка
+                image_np = np.array(image)
+                gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+                page_text = pytesseract.image_to_string(gray, lang='rus')
+                text += page_text + "\\n"
+            
+            return text
+        except Exception as e:
+            print(f"Error extracting from PDF: {e}")
+            return ""
+            </div>
+          </div>
+        `
+      },
+      'p1-week3': {
+        title: 'Проект 1: Неделя 3 - Система проверки стандартов',
+        content: `
+          <div class="code-section">
+            <h3>Валидатор стандартов</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/app/services/standard_validator.py
+import re
+from typing import List, Dict
+import spacy
+
+class StandardValidator:
+    def __init__(self):
+        # Загрузка модели для обработки русского языка
+        try:
+            self.nlp = spacy.load("ru_core_news_sm")
+        except OSError:
+            # Если модель не установлена, используем базовую
+            self.nlp = None
+    
+    async def validate_document(self, text: str, standards: List[str]) -> List[Dict]:
+        """Проверка документа на соответствие стандартам"""
+        violations = []
+        
+        # Проверка терминологии
+        terminology_violations = await self._check_terminology(text)
+        violations.extend(terminology_violations)
+        
+        # Проверка структуры
+        structure_violations = await self._check_structure(text)
+        violations.extend(structure_violations)
+        
+        # Проверка ссылок на нормативы
+        reference_violations = await self._check_references(text)
+        violations.extend(reference_violations)
+        
+        return violations
+    
+    async def _check_terminology(self, text: str) -> List[Dict]:
+        """Проверка корректности терминологии"""
+        violations = []
+        
+        # Словарь некорректных терминов и их исправлений
+        incorrect_terms = {
+            "чертежник": "инженер-конструктор",
+            "схемка": "схема",
+            "расчетчик": "инженер-расчетчик",
+            # Добавить больше терминов по стандартам Росатома
+        }
+        
+        for incorrect, correct in incorrect_terms.items():
+            if incorrect in text.lower():
+                violations.append({
+                    'type': 'terminology',
+                    'severity': 'medium',
+                    'message': f'Некорректный термин: "{incorrect}"',
+                    'suggestion': f'Используйте: "{correct}"',
+                    'position': text.lower().find(incorrect)
+                })
+        
+        return violations
+    
+    async def _check_references(self, text: str) -> List[Dict]:
+        """Проверка ссылок на нормативные документы"""
+        violations = []
+        
+        # Паттерны для поиска ссылок на стандарты
+        patterns = [
+            r'(ГОСТ\\s+[^,\\s\\.]+)',
+            r'(ОСТ\\s+[^,\\s\\.]+)',
+            r'(НП\\s+[^,\\s\\.]+)',
+            r'(РД\\s+[^,\\s\\.]+)',
+            r'(СТО\\s+[^,\\s\\.]+)'
+        ]
+        
+        for pattern in patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                standard_ref = match.group(1)
+                # Проверка актуальности стандарта
+                if not await self._is_standard_active(standard_ref):
+                    violations.append({
+                        'type': 'reference',
+                        'severity': 'high',
+                        'message': f'Устаревший или недействующий стандарт: {standard_ref}',
+                        'suggestion': 'Проверьте актуальность стандарта в базе Росатома'
+                    })
+        
+        return violations
+            </div>
+          </div>
+        `
+      },
+      'p1-week4': {
+        title: 'Проект 1: Неделя 4 - AI-компоненты и интеллектуальная обработка',
+        content: `
+          <div class="code-section">
+            <h3>NLP обработчик</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/app/services/nlp_processor.py
+import spacy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+class NLPProcessor:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(
+            max_features=1000,
+            stop_words=russian_stop_words,  # Список русских стоп-слов
+            ngram_range=(1, 2)
+        )
+    
+    async def analyze_document_structure(self, text: str) -> Dict:
+        """Анализ структуры документа"""
+        sections = self._extract_sections(text)
+        completeness_score = self._check_completeness(sections)
+        logical_flow = self._analyze_logical_flow(text)
+        
+        return {
+            'sections': sections,
+            'completeness_score': completeness_score,
+            'logical_flow': logical_flow,
+            'recommendations': self._generate_recommendations(sections, completeness_score)
+        }
+    
+    def _extract_sections(self, text: str) -> List[Dict]:
+        """Извлечение разделов документа"""
+        sections = []
+        lines = text.split('\\n')
+        
+        current_section = None
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if self._is_section_header(line):
+                if current_section:
+                    sections.append(current_section)
+                
+                current_section = {
+                    'title': line,
+                    'content': '',
+                    'page': i // 50,  # Примерная нумерация страниц
+                    'expected_elements': self._get_expected_elements(line)
+                }
+            elif current_section:
+                current_section['content'] += line + '\\n'
+        
+        if current_section:
+            sections.append(current_section)
+        
+        return sections
+            </div>
+          </div>
+        `
+      },
+      'p1-week5': {
+        title: 'Проект 1: Неделя 5 - Frontend разработка',
+        content: `
+          <div class="code-section">
+            <h3>React компоненты</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// frontend/src/components/DocumentUpload.jsx
+import React, { useState } from 'react';
+import { 
+    Box, 
+    Button, 
+    Paper, 
+    Typography, 
+    LinearProgress,
+    Alert 
+} from '@mui/material';
+import { CloudUpload } from '@mui/icons-material';
+import axios from 'axios';
+
+const DocumentUpload = () => {
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [result, setResult] = useState(null);
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        setProgress(0);
+        
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await axios.post('/api/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                onUploadProgress: (progressEvent) => {
+                    const percent = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setProgress(percent);
+                },
+            });
+
+            setResult(response.data);
+        } catch (error) {
+            console.error('Upload error:', error);
+            setResult({ error: 'Ошибка загрузки файла' });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <Paper elevation={3} sx={{ p: 3, maxWidth: 600, margin: 'auto' }}>
+            <Typography variant="h5" gutterBottom>
+                Загрузка документа для нормоконтроля
+            </Typography>
+            
+            <Box sx={{ mt: 2 }}>
+                <input
+                    accept=".pdf,.docx,.dwg"
+                    style={{ display: 'none' }}
+                    id="document-upload"
+                    type="file"
+                    onChange={handleFileUpload}
+                />
+                <label htmlFor="document-upload">
+                    <Button
+                        variant="contained"
+                        component="span"
+                        startIcon={<CloudUpload />}
+                        disabled={uploading}
+                    >
+                        Выбрать файл
+                    </Button>
+                </label>
+            </Box>
+
+            {uploading && (
+                <Box sx={{ mt: 2 }}>
+                    <LinearProgress variant="determinate" value={progress} />
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                        Загрузка: {progress}%
+                    </Typography>
+                </Box>
+            )}
+
+            {result && (
+                <Box sx={{ mt: 2 }}>
+                    {result.error ? (
+                        <Alert severity="error">{result.error}</Alert>
+                    ) : (
+                        <Alert severity="success">
+                            Документ проверен. Нарушений: {result.violations?.length || 0}
+                        </Alert>
+                    )}
+                </Box>
+            )}
+        </Paper>
+    );
+};
+
+export default DocumentUpload;
+            </div>
+          </div>
+          <div class="code-section">
+            <h3>Компонент отображения нарушений</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// frontend/src/components/ViolationsList.jsx
+import React from 'react';
+import {
+    List,
+    ListItem,
+    ListItemText,
+    Chip,
+    Box,
+    Typography
+} from '@mui/material';
+import { Warning, Error, Info } from '@mui/icons-material';
+
+const ViolationsList = ({ violations }) => {
+    const getSeverityIcon = (severity) => {
+        switch (severity) {
+            case 'high':
+                return <Error color="error" />;
+            case 'medium':
+                return <Warning color="warning" />;
+            case 'low':
+                return <Info color="info" />;
+            default:
+                return <Info />;
+        }
+    };
+
+    const getSeverityColor = (severity) => {
+        switch (severity) {
+            case 'high': return 'error';
+            case 'medium': return 'warning';
+            case 'low': return 'info';
+            default: return 'default';
+        }
+    };
+
+    return (
+        <Box>
+            <Typography variant="h6" gutterBottom>
+                Нарушения стандартов ({violations.length})
+            </Typography>
+            
+            <List>
+                {violations.map((violation, index) => (
+                    <ListItem key={index} divider>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                            <Box sx={{ mr: 2 }}>
+                                {getSeverityIcon(violation.severity)}
+                            </Box>
+                            
+                            <Box sx={{ flexGrow: 1 }}>
+                                <ListItemText
+                                    primary={violation.message}
+                                    secondary={violation.suggestion}
+                                />
+                                
+                                <Box sx={{ mt: 1 }}>
+                                    <Chip
+                                        label={violation.type}
+                                        size="small"
+                                        color={getSeverityColor(violation.severity)}
+                                        variant="outlined"
+                                    />
+                                </Box>
+                            </Box>
+                        </Box>
+                    </ListItem>
+                ))}
+            </List>
+        </Box>
+    );
+};
+
+export default ViolationsList;
+            </div>
+          </div>
+        `
+      },
+      'p1-week6-8': {
+        title: 'Проект 1: Недели 6-8 - Интеграция и Docker',
+        content: `
+          <div class="code-section">
+            <h3>Docker конфигурация</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/Dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Установка системных зависимостей для OCR и обработки изображений
+RUN apt-get update && apt-get install -y \\
+    tesseract-ocr \\
+    tesseract-ocr-rus \\
+    poppler-utils \\
+    libgl1-mesa-glx \\
+    libglib2.0-0 \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование requirements и установка Python зависимостей
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование исходного кода
+COPY . .
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+            </div>
+          </div>
+          <div class="code-section">
+            <h3>Docker Compose</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: norm_control
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://developer:password@postgres:5432/norm_control
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+            </div>
+          </div>
+        `
+      },
+      'p2-desc': {
+        title: 'Проект 2: Платформа управления ресурсами - Описание',
+        content: `
+          <div class="code-section">
+            <h3>Описание проекта</h3>
+            <p><strong>Цель:</strong> Создать систему оптимизации распределения человеческих ресурсов между проектами института</p>
+            <p><strong>Основные функции:</strong></p>
+            <ul>
+              <li>Визуализация загрузки сотрудников</li>
+              <li>Автоматическое распределение задач</li>
+              <li>Прогнозирование сроков выполнения</li>
+              <li>Интеграция с системами учета времени</li>
+            </ul>
+          </div>
+        `
+      },
+      'p2-week1-2': {
+        title: 'Проект 2: Недели 1-2 - Django Backend',
+        content: `
+          <div class="code-section">
+            <h3>Модели сотрудников и проектов</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/apps/employees/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Department(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    
+    class Meta:
+        db_table = 'departments'
+    
+    def __str__(self):
+        return self.name
+
+class Employee(models.Model):
+    POSITION_CHOICES = [
+        ('engineer', 'Инженер'),
+        ('senior_engineer', 'Старший инженер'),
+        ('lead_engineer', 'Ведущий инженер'),
+        ('manager', 'Руководитель'),
+        ('designer', 'Конструктор'),
+        ('technologist', 'Технолог'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    employee_id = models.CharField(max_length=20, unique=True)
+    position = models.CharField(max_length=50, choices=POSITION_CHOICES)
+    department = models.ForeignKey(Department, on_delete=models.PROTECT)
+    hire_date = models.DateField()
+    skills = models.JSONField(default=list)  # Список компетенций
+    max_workload = models.IntegerField(default=100)  # Максимальная загрузка в %
+    is_active = models.BooleanField(default=True)
+            </div>
+          </div>
+        `
+      },
+      'p2-week3': {
+        title: 'Проект 2: Неделя 3 - Алгоритмы оптимизации',
+        content: `
+          <div class="code-section">
+            <h3>Сервис оптимизации загрузки</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# backend/apps/allocations/services/optimization_engine.py
+import numpy as np
+import pandas as pd
+from typing import List, Dict, Tuple
+from scipy.optimize import linear_sum_assignment
+
+class ResourceOptimizer:
+    def __init__(self):
+        self.employees = []
+        self.tasks = []
+    
+    def optimize_allocation(self, employees: List, tasks: List) -> Dict:
+        """Оптимизация распределения задач между сотрудниками"""
+        # Матрица компетенций
+        competence_matrix = self._build_competence_matrix(employees, tasks)
+        
+        # Матрица стоимости (обратная компетенциям)
+        cost_matrix = 1 - competence_matrix
+        
+        # Решение задачи назначения
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        
+        allocations = []
+        for emp_idx, task_idx in zip(row_ind, col_ind):
+            if competence_matrix[emp_idx][task_idx] > 0.3:  # Минимальный порог компетенции
+                allocations.append({
+                    'employee': employees[emp_idx],
+                    'task': tasks[task_idx],
+                    'competence_score': competence_matrix[emp_idx][task_idx]
+                })
+        
+        return {
+            'allocations': allocations,
+            'total_competence': competence_matrix[row_ind, col_ind].sum(),
+            'utilization_rate': len(allocations) / len(tasks)
+        }
+            </div>
+          </div>
+        `
+      },
+      'p2-week4': {
+        title: 'Проект 2: Неделя 4 - Angular Frontend',
+        content: `
+          <div class="code-section">
+            <h3>Компонент списка сотрудников</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// frontend/src/app/employees/employees-list/employees-list.component.ts
+import { Component, OnInit } from '@angular/core';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatDialog } from '@angular/material/dialog';
+import { EmployeeService } from '../services/employee.service';
+import { Employee } from '../models/employee.model';
+
+@Component({
+  selector: 'app-employees-list',
+  templateUrl: './employees-list.component.html',
+  styleUrls: ['./employees-list.component.scss']
+})
+export class EmployeesListComponent implements OnInit {
+  displayedColumns: string[] = [
+    'employeeId', 
+    'fullName', 
+    'position', 
+    'department', 
+    'workload', 
+    'actions'
+  ];
+  dataSource = new MatTableDataSource<Employee>();
+  isLoading = true;
+
+  constructor(
+    private employeeService: EmployeeService,
+    private dialog: MatDialog
+  ) {}
+
+  ngOnInit(): void {
+    this.loadEmployees();
+  }
+
+  loadEmployees(): void {
+    this.isLoading = true;
+    this.employeeService.getEmployees().subscribe({
+      next: (employees) => {
+        this.dataSource.data = employees;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading employees:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+}
+            </div>
+          </div>
+        `
+      },
+      'p2-week5-8': {
+        title: 'Проект 2: Недели 5-8 - Интеграция',
+        content: `
+          <div class="code-section">
+            <h3>Docker Compose</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: resource_mgmt
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DB_NAME=resource_mgmt
+      - DB_USER=developer
+      - DB_PASSWORD=password
+      - DB_HOST=postgres
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn resource_mgmt.wsgi:application --bind 0.0.0.0:8000"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+            </div>
+          </div>
+        `
+      },
+      'p3-desc': {
+        title: 'Проект 3: Система контроля версий и шаблонов - Описание',
+        content: `
+          <div class="code-section">
+            <h3>Описание проекта</h3>
+            <p><strong>Цель:</strong> Создать централизованную систему управления шаблонами и версиями проектной документации</p>
+            <p><strong>Основные функции:</strong></p>
+            <ul>
+              <li>Централизованное хранение шаблонов документов</li>
+              <li>Умный поиск по документации</li>
+              <li>Контроль версий и изменений</li>
+              <li>Интеграция с CAD-системами</li>
+            </ul>
+          </div>
+        `
+      },
+      'p3-week1-2': {
+        title: 'Проект 3: Недели 1-2 - Node.js Backend',
+        content: `
+          <div class="code-section">
+            <h3>Модель шаблона документа</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// src/models/Template.ts
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface ITemplate extends Document {
+  name: string;
+  description: string;
+  category: string;
+  department: string;
+  tags: string[];
+  file: {
+    originalName: string;
+    storedName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+  };
+  metadata: {
+    author: string;
+    version: number;
+    status: 'draft' | 'approved' | 'deprecated';
+    lastModified: Date;
+    checksum: string;
+  };
+}
+
+const TemplateSchema: Schema = new Schema({
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  category: { type: String, required: true },
+  department: { type: String, required: true },
+  tags: [{ type: String }],
+  file: {
+    originalName: { type: String, required: true },
+    storedName: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    url: { type: String, required: true }
+  },
+  metadata: {
+    author: { type: String, required: true },
+    version: { type: Number, default: 1 },
+    status: { 
+      type: String, 
+      enum: ['draft', 'approved', 'deprecated'],
+      default: 'draft'
+    },
+    lastModified: { type: Date, default: Date.now },
+    checksum: { type: String, required: true }
+  }
+}, { timestamps: true });
+
+export default mongoose.model<ITemplate>('Template', TemplateSchema);
+            </div>
+          </div>
+        `
+      },
+      'p3-week3': {
+        title: 'Проект 3: Неделя 3 - Поиск и хранение',
+        content: `
+          <div class="code-section">
+            <h3>Интеграция с Elasticsearch</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// src/services/SearchService.ts
+import { Client } from '@elastic/elasticsearch';
+
+export class SearchService {
+  private client: Client;
+
+  constructor() {
+    this.client = new Client({
+      node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200'
+    });
+  }
+
+  async searchTemplates(query: string, filters: any = {}): Promise<any> {
+    const must: any[] = [];
+
+    // Текстовый поиск
+    if (query) {
+      must.push({
+        multi_match: {
+          query,
+          fields: ['name^3', 'description^2', 'tags^2', 'content'],
+          fuzziness: 'AUTO'
+        }
+      });
+    }
+
+    // Фильтры
+    if (filters.category) {
+      must.push({ term: { category: filters.category } });
+    }
+
+    const searchQuery = {
+      index: 'templates',
+      body: {
+        query: {
+          bool: {
+            must: must.length > 0 ? must : [{ match_all: {} }]
+          }
+        },
+        sort: [
+          { '_score': { order: 'desc' } },
+          { 'metadata.lastModified': { order: 'desc' } }
+        ]
+      }
+    };
+
+    const response = await this.client.search(searchQuery);
+    return response.body.hits;
+  }
+}
+            </div>
+          </div>
+        `
+      },
+      'p3-week4': {
+        title: 'Проект 3: Неделя 4 - React Frontend',
+        content: `
+          <div class="code-section">
+            <h3>Компонент управления шаблонами</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+// frontend/src/components/TemplateManager/TemplateManager.tsx
+import React, { useState } from 'react';
+import { useQuery } from 'react-query';
+import { templateApi } from '../../services/api';
+
+const TemplateManager: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  const { data: templates, isLoading } = useQuery(
+    ['templates', searchTerm, selectedCategory],
+    () => templateApi.getTemplates({ search: searchTerm, category: selectedCategory })
+  );
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" component="h1">
+        Управление шаблонами
+      </Typography>
+      
+      {/* Поиск и фильтры */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <TextField
+          placeholder="Поиск шаблонов..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Box>
+
+      {/* Список шаблонов */}
+      <Grid container spacing={3}>
+        {templates?.data.map((template) => (
+          <Grid item xs={12} md={6} lg={4} key={template._id}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{template.name}</Typography>
+                <Typography variant="body2">{template.description}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+};
+
+export default TemplateManager;
+            </div>
+          </div>
+        `
+      },
+      'p3-week5-8': {
+        title: 'Проект 3: Недели 5-8 - Финальная стадия',
+        content: `
+          <div class="code-section">
+            <h3>Docker Compose</h3>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+# docker-compose.yml
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: template_management
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017/template_management
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - mongodb
+      - elasticsearch
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+  elasticsearch_data:
+            </div>
+          </div>
+        `
+      }
+    };
+
+    function openModal(modalId) {
+      const data = codeData[modalId];
+      if (!data) {
+        alert('Код для этого этапа пока не добавлен. Работаем над этим!');
+        return;
+      }
+
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>${data.title}</h2>
+            <button class="modal-close" onclick="closeModal(this)">&times;</button>
+          </div>
+          <div class="modal-body">
+            ${data.content}
+          </div>
+        </div>
+      `;
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal(modal.querySelector('.modal-close'));
+        }
+      });
+
+      document.getElementById('modal-container').appendChild(modal);
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(btn) {
+      const modal = btn.closest('.modal');
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.remove();
+        document.body.style.overflow = '';
+      }, 300);
+    }
+
+    function copyCode(btn) {
+      const codeBlock = btn.parentElement;
+      const text = codeBlock.textContent.replace('Копировать', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }).catch(() => {
+        // Fallback для старых браузеров
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => {
+          btn.textContent = 'Копировать';
+        }, 2000);
+      });
+    }
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.active');
+        if (modal) {
+          closeModal(modal.querySelector('.modal-close'));
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
