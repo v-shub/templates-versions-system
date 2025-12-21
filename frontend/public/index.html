@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Поддержка мобильных устройств -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Цвет темы браузера -->
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- Описание приложения -->
+    <meta
+      name="description"
+      content="React приложение"
+    />
+    
+    <!-- Фавиконки (замените своими) -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    
+    <!-- Манифест для PWA -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Заголовок страницы -->
+    <title>React App</title>
+    
+    <!-- Шрифты (пример с Google Fonts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Стили (если нужны глобальные стили) -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Стиль для корневого элемента React */
+      #root {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Контейнер для React-приложения -->
+    <noscript>Для работы приложения необходим JavaScript. Пожалуйста, включите его.</noscript>
+    <div id="root"></div>
+    
+    <!--
+      Этот HTML-файл является шаблоном.
+      - %PUBLIC_URL% заменится на URL публичной папки
+      - При сборке скрипты будут автоматически добавлены
+    -->
+  </body>
+</html>

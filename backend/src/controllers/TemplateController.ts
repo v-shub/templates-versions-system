@@ -723,12 +723,28 @@ getCategories = async (req: Request, res: Response) => {
       return res.json(JSON.parse(cachedData));
     }
 
-    const categories = await Template.distinct('category');
+    // Базовые категории по умолчанию
+    const defaultCategories = [
+      'Документация',
+      'Формы',
+      'Отчеты',
+      'Инструкции',
+      'Презентации',
+      'Шаблоны писем',
+      'Договоры',
+      'Политики',
+    ];
+
+    // Получаем уникальные категории из существующих шаблонов
+    const templateCategories = await Template.distinct('category');
+    
+    // Объединяем базовые категории с категориями из шаблонов, убираем дубликаты
+    const allCategories = [...new Set([...defaultCategories, ...templateCategories])].sort();
     
     // Кэшируем на 10 минут
-    await this.redis.set(cacheKey, JSON.stringify(categories), 600);
+    await this.redis.set(cacheKey, JSON.stringify(allCategories), 600);
 
-    res.json(categories);
+    res.json(allCategories);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -744,12 +760,28 @@ getDepartments = async (req: Request, res: Response) => {
       return res.json(JSON.parse(cachedData));
     }
 
-    const departments = await Template.distinct('department');
+    // Базовые отделы по умолчанию
+    const defaultDepartments = [
+      'Отдел кадров',
+      'Финансовый отдел',
+      'IT-отдел',
+      'Отдел продаж',
+      'Маркетинг',
+      'Юридический отдел',
+      'Отдел закупок',
+      'Производственный отдел',
+    ];
+
+    // Получаем уникальные отделы из существующих шаблонов
+    const templateDepartments = await Template.distinct('department');
+    
+    // Объединяем базовые отделы с отделами из шаблонов, убираем дубликаты
+    const allDepartments = [...new Set([...defaultDepartments, ...templateDepartments])].sort();
     
     // Кэшируем на 10 минут
-    await this.redis.set(cacheKey, JSON.stringify(departments), 600);
+    await this.redis.set(cacheKey, JSON.stringify(allDepartments), 600);
 
-    res.json(departments);
+    res.json(allDepartments);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
