@@ -1,0 +1,3581 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Расширенное руководство: Система контроля версий и управления шаблонами · Команда 3</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #030a14;
+      --panel: rgba(9, 24, 42, 0.8);
+      --accent: #7bffb7;
+      --accent-soft: rgba(123, 255, 183, 0.15);
+      --text: #e6f2ff;
+      --code-bg: rgba(0, 20, 40, 0.6);
+      --section-bg: rgba(5, 14, 24, 0.6);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', 'Exo 2', system-ui, -apple-system, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at 20% 20%, rgba(16, 60, 94, 0.45), transparent 55%),
+        radial-gradient(circle at 80% 0%, rgba(11, 88, 104, 0.3), transparent 45%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      padding: 40px clamp(20px, 5vw, 90px);
+    }
+    .book-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      animation: fadeInDown 0.8s ease both;
+    }
+    header h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent), #4dd0e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header .subtitle {
+      font-size: 20px;
+      color: var(--accent);
+      opacity: 0.9;
+    }
+    .toc {
+      background: var(--panel);
+      border: 1px solid rgba(123, 255, 183, 0.3);
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 40px;
+      backdrop-filter: blur(16px);
+    }
+    .toc h2 {
+      color: var(--accent);
+      font-size: 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .toc ul {
+      list-style: none;
+      columns: 2;
+      column-gap: 40px;
+    }
+    .toc li {
+      margin-bottom: 12px;
+      break-inside: avoid;
+    }
+    .toc a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 8px 12px;
+      display: block;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .toc a:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+      transform: translateX(8px);
+    }
+    .chapter {
+      background: var(--panel);
+      border: 1px solid rgba(123, 255, 183, 0.3);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 40px;
+      backdrop-filter: blur(16px);
+      animation: fadeInUp 0.9s ease both;
+    }
+    .chapter h2 {
+      color: var(--accent);
+      font-size: 32px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid rgba(123, 255, 183, 0.3);
+    }
+    .chapter h3 {
+      color: var(--accent);
+      font-size: 24px;
+      margin-top: 32px;
+      margin-bottom: 16px;
+    }
+    .chapter h4 {
+      color: #a8d5ff;
+      font-size: 20px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    .chapter p {
+      margin-bottom: 16px;
+      font-size: 16px;
+      text-align: justify;
+    }
+    .chapter ul, .chapter ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+    .chapter li {
+      margin-bottom: 8px;
+    }
+    .highlight-box {
+      background: var(--section-bg);
+      border-left: 4px solid var(--accent);
+      padding: 20px;
+      margin: 24px 0;
+      border-radius: 8px;
+    }
+    .highlight-box strong {
+      color: var(--accent);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .tip-box {
+      background: rgba(123, 255, 183, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .tip-box::before {
+      content: "💡 Совет: ";
+      color: var(--accent);
+      font-weight: bold;
+    }
+    .warning-box {
+      background: rgba(255, 152, 0, 0.1);
+      border: 1px solid #ff9800;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .warning-box::before {
+      content: "⚠️ Важно: ";
+      color: #ff9800;
+      font-weight: bold;
+    }
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid rgba(123, 255, 183, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      overflow-x: auto;
+      position: relative;
+      padding-top: 50px;
+    }
+    .code-block pre {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #a8d5ff;
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 8px 16px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .copy-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .show-code-btn {
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-block;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      min-height: 44px;
+    }
+    .show-code-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .exercise {
+      background: var(--section-bg);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 32px 0;
+    }
+    .exercise h4 {
+      color: var(--accent);
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2147483647; /* поверх всего */
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.3s ease;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .modal.active {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 24px;
+      padding: 0;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: 1200px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      animation: slideUp 0.4s ease;
+      pointer-events: auto;
+    }
+    @media (max-width: 768px) {
+      .toc ul {
+        columns: 1;
+      }
+      .chapter {
+        padding: 24px;
+      }
+      .modal-content {
+        width: 95vw;
+        max-width: 95vw;
+        max-height: 95vh;
+      }
+    }
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(123, 255, 183, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 24px;
+      color: var(--accent);
+      margin: 0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 32px;
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      touch-action: manipulation;
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .modal-close:hover {
+      background: var(--accent-soft);
+      transform: rotate(90deg);
+    }
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+      max-height: calc(90vh - 120px);
+    }
+
+    /* ✅ Читабельный код внутри модальных окон */
+    .modal-body .code-full {
+      background: var(--code-bg);
+      border: 1px solid rgba(123, 255, 183, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative;
+      padding-top: 50px;
+    }
+    .modal-body .code-full pre,
+    .modal-body pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+      font-size: 13px !important;
+      line-height: 1.55 !important;
+      color: #a8d5ff !important;
+      margin: 0 !important;
+      white-space: pre !important;
+      word-break: normal !important;
+      overflow-x: auto !important;
+      tab-size: 2;
+    }
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="book-container">
+    <header>
+      <h1>📚 Расширенное руководство по разработке</h1>
+      <p class="subtitle">Система контроля версий и управления шаблонами</p>
+      <p style="margin-top: 16px; opacity: 0.8;">Команда 3 · Node.js + Express + MongoDB + React</p>
+      <p style="margin-top: 12px; font-size: 16px; color: #4dd0e1; opacity: 0.9;">
+        ⭐ Углубленное изучение с детальным разбором компонентов, архитектуры и лучших практик
+      </p>
+    </header>
+
+    <div class="toc">
+      <h2>📑 Содержание</h2>
+      <ul>
+        <li><a href="#intro">Введение</a></li>
+        <li><a href="#chapter1">Глава 1: Основы контроля версий</a></li>
+        <li><a href="#chapter2">Глава 2: Node.js и Express (углубленно)</a></li>
+        <li><a href="#chapter3">Глава 3: База данных MongoDB (углубленно)</a></li>
+        <li><a href="#chapter4">Глава 4: React Frontend (углубленно)</a></li>
+        <li><a href="#chapter5">Глава 5: Архитектура приложения</a></li>
+        <li><a href="#chapter6">Глава 6: Паттерны проектирования</a></li>
+        <li><a href="#chapter7">Глава 7: Интеграция компонентов</a></li>
+        <li><a href="#chapter8">Глава 8: Оптимизация и производительность</a></li>
+        <li><a href="#chapter9">Глава 9: Безопасность и тестирование</a></li>
+        <li><a href="#chapter10">Глава 10: Docker и развертывание</a></li>
+        <li><a href="#chapter11">Глава 11: Мониторинг и логирование</a></li>
+        <li><a href="#chapter12">Глава 12: Продвинутые техники</a></li>
+        <li><a href="#checklist">✅ Чеклист запуска и проверка результата</a></li>
+      </ul>
+    </div>
+
+    <div id="intro" class="chapter">
+      <h2>Введение</h2>
+      <p>Добро пожаловать в полное руководство по разработке системы контроля версий и управления шаблонами! Это руководство проведет вас через весь процесс создания полноценного веб-приложения от начала до конца.</p>
+      
+      <div class="highlight-box">
+        <strong>Что вы изучите:</strong>
+        <ul>
+          <li>Основы контроля версий документов и шаблонов</li>
+          <li>Разработку REST API на Node.js и Express</li>
+          <li>Работу с MongoDB через Mongoose</li>
+          <li>Создание React приложения с современными практиками</li>
+          <li>Интеграцию всех компонентов системы</li>
+          <li>Развертывание с помощью Docker</li>
+        </ul>
+      </div>
+
+      <h3>Что такое система контроля версий и управления шаблонами?</h3>
+      <p>Система контроля версий и управления шаблонами — это платформа для централизованного хранения, версионирования и управления шаблонами документов. Она позволяет:</p>
+      <ul>
+        <li>Отслеживать все изменения в шаблонах</li>
+        <li>Восстанавливать предыдущие версии</li>
+        <li>Сравнивать версии между собой</li>
+        <li>Обеспечивать прозрачность изменений</li>
+        <li>Управлять жизненным циклом шаблонов</li>
+      </ul>
+
+      <div class="tip-box">
+        Изучайте материал последовательно, выполняя все практические задания. Это поможет лучше усвоить материал.
+      </div>
+    </div>
+
+    <div id="chapter1" class="chapter">
+      <h2>Глава 1: Основы контроля версий</h2>
+      
+      <h3>1.1 Понятие контроля версий</h3>
+      <p>Контроль версий — это система управления изменениями в документах и шаблонах. Она позволяет отслеживать все изменения, восстанавливать предыдущие версии и сравнивать версии между собой. В контексте управления шаблонами это критически важно для обеспечения целостности и прозрачности изменений.</p>
+
+      <h3>1.2 Цели и задачи системы</h3>
+      <ul>
+        <li><strong>Отслеживание изменений</strong> — полная история всех модификаций шаблонов</li>
+        <li><strong>Восстановление версий</strong> — возможность вернуться к любой предыдущей версии</li>
+        <li><strong>Сравнение версий</strong> — визуальное сравнение изменений между версиями</li>
+        <li><strong>Прозрачность</strong> — кто, когда и что изменил</li>
+        <li><strong>Управление жизненным циклом</strong> — контроль состояния шаблонов (активный, архивный, черновик)</li>
+      </ul>
+
+      <h3>1.3 Ключевые концепции</h3>
+      <p>Система контроля версий шаблонов включает:</p>
+      <ul>
+        <li><strong>Версионирование</strong> — присвоение номеров версий (1.0, 1.1, 2.0 и т.д.)</li>
+        <li><strong>История изменений</strong> — хранение всех версий с метаданными</li>
+        <li><strong>Описание изменений</strong> — обязательное описание того, что было изменено</li>
+        <li><strong>Авторство</strong> — отслеживание автора каждого изменения</li>
+        <li><strong>Сравнение версий</strong> — инструменты для сравнения содержимого</li>
+      </ul>
+
+      <div class="exercise">
+        <h4>Практическое задание 1.1</h4>
+        <p>Подумайте о шаблонах документов в вашей организации. Какие типы шаблонов нуждаются в контроле версий? Составьте список требований к системе контроля версий.</p>
+      </div>
+    </div>
+
+    <div id="chapter2" class="chapter">
+      <h2>Глава 2: Node.js и Express (углубленно)</h2>
+
+      <h3>2.1 Введение в Node.js для веб-разработки</h3>
+      <p>Node.js — это среда выполнения JavaScript на стороне сервера, построенная на движке V8. Его преимущества:</p>
+      <ul>
+        <li><strong>Единый язык</strong> — JavaScript для frontend и backend</li>
+        <li><strong>Асинхронность</strong> — неблокирующий I/O для высокой производительности</li>
+        <li><strong>Богатая экосистема</strong> — npm с миллионами пакетов</li>
+        <li><strong>Быстрая разработка</strong> — простота и гибкость</li>
+        <li><strong>Активное сообщество</strong> — постоянная поддержка и обновления</li>
+      </ul>
+
+      <h3 id="setup-section">2.2 Установка и настройка окружения</h3>
+      <p>Для начала работы установите Node.js 18 или новее:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># Проверка версии Node.js
+node --version
+# Должно быть: v18.x.x или выше
+
+# Проверка версии npm
+npm --version
+
+# Создание проекта
+mkdir version-control-backend
+cd version-control-backend
+npm init -y
+
+# Установка зависимостей
+npm install express mongoose cors dotenv express-validator jsonwebtoken bcryptjs
+npm install --save-dev nodemon
+
+# Создание структуры проекта
+mkdir -p src/{config,models,routes,controllers,middleware,utils}
+mkdir tests</pre>
+      </div>
+
+      <button class="show-code-btn" data-part="setup-requirements">📋 Показать полный package.json</button>
+      <button class="show-code-btn" data-part="express-architecture">📋 Показать полную структуру проекта</button>
+      <button class="show-code-btn" data-part="setup-env-file">📋 Показать настройку .env файла</button>
+
+      <h3>2.3 Архитектура Express</h3>
+      <p>Express — минималистичный и гибкий веб-фреймворк для Node.js. Понимание архитектуры поможет создавать эффективные приложения:</p>
+      
+      <div class="highlight-box">
+        <strong>Ключевые компоненты Express:</strong>
+        <ul>
+          <li><strong>Application</strong> — основной объект приложения</li>
+          <li><strong>Router</strong> — маршрутизация запросов</li>
+          <li><strong>Middleware</strong> — промежуточное ПО для обработки запросов</li>
+          <li><strong>Request/Response</strong> — объекты запроса и ответа</li>
+          <li><strong>Error Handling</strong> — обработка ошибок</li>
+        </ul>
+      </div>
+
+      <button class="show-code-btn" data-part="express-architecture">📋 Показать детальную структуру приложения</button>
+
+      <h3>2.4 Создание первого API с детальным разбором</h3>
+      <p>Создайте файл <code>src/app.js</code> с базовым API. Разберем каждую часть:</p>
+      <button class="show-code-btn" data-part="express-basic">📋 Показать код базового Express приложения</button>
+
+      <h3>2.5 Роутинг и организация endpoints</h3>
+      <p>Правильная организация роутов критична для масштабируемости приложения:</p>
+      <button class="show-code-btn" data-part="express-routes">📋 Показать организацию роутов</button>
+
+      <h3>2.6 Middleware в Express</h3>
+      <p>Middleware — это функции, которые имеют доступ к объектам запроса (req), ответа (res) и следующей функции middleware в цикле запрос-ответ. Это позволяет:</p>
+      <ul>
+        <li>Выполнять код на любом этапе запроса</li>
+        <li>Изменять объекты запроса и ответа</li>
+        <li>Завершать цикл запрос-ответ</li>
+        <li>Вызывать следующий middleware в стеке</li>
+      </ul>
+      <button class="show-code-btn" data-part="express-middleware">📋 Показать примеры Middleware</button>
+
+      <h3>2.7 Модели данных с Mongoose (расширенно)</h3>
+      <p>Mongoose — это ODM (Object Document Mapper) для MongoDB. Он обеспечивает валидацию данных и удобную работу с документами:</p>
+      <button class="show-code-btn" data-part="mongoose-models">📋 Показать Mongoose модели</button>
+
+      <h3>2.8 Валидация данных</h3>
+      <p>Валидация данных критична для безопасности и надежности приложения:</p>
+      <button class="show-code-btn" data-part="express-validation">📋 Показать примеры валидации</button>
+
+      <h3>2.9 Обработка ошибок и исключений</h3>
+      <p>Правильная обработка ошибок улучшает пользовательский опыт и упрощает отладку:</p>
+      <button class="show-code-btn" data-part="express-error-handling">📋 Показать обработку ошибок</button>
+
+      <h3>2.12 CORS настройка</h3>
+      <p>Настройка CORS для работы с React фронтендом:</p>
+      <button class="show-code-btn" data-part="cors-setup">📋 Показать настройку CORS</button>
+
+      <h3>2.13 Профессиональный API интерфейс (Swagger/OpenAPI)</h3>
+      <p>Настройка Swagger документации для Express API:</p>
+      <button class="show-code-btn" data-part="api-documentation">📋 Показать настройку Swagger документации</button>
+
+      <div class="tip-box">
+        <strong>Совет:</strong> Используйте Swagger документацию по адресу /api-docs для тестирования API во время разработки. Это поможет быстро проверить все endpoints.
+      </div>
+
+      <div class="warning-box">
+        <strong>Важно:</strong> Всегда используйте async/await для операций с базой данных и внешними API. Это значительно повышает производительность приложения. Также используйте try-catch для обработки ошибок.
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 2.1</h4>
+        <p>Создайте Express приложение с модульной структурой: разделите роуты на отдельные файлы, создайте систему подключения к MongoDB, добавьте middleware для логирования запросов.</p>
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 2.2</h4>
+        <p>Реализуйте систему аутентификации с использованием JWT токенов. Создайте endpoints для регистрации, входа и защищенные endpoints, требующие аутентификации. Используйте middleware для проверки токенов.</p>
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 2.3</h4>
+        <p>Создайте WebSocket endpoint (используя Socket.io) для отправки уведомлений об изменениях шаблонов в реальном времени.</p>
+      </div>
+    </div>
+
+    <div id="chapter3" class="chapter">
+      <h2>Глава 3: База данных MongoDB (углубленно)</h2>
+
+      <h3>3.1 Введение в MongoDB</h3>
+      <p>MongoDB — документоориентированная NoSQL база данных. Преимущества для системы контроля версий:</p>
+      <ul>
+        <li><strong>Гибкая схема</strong> — легко добавлять новые поля без миграций</li>
+        <li><strong>JSON-подобные документы</strong> — естественное хранение шаблонов</li>
+        <li><strong>Масштабируемость</strong> — горизонтальное масштабирование</li>
+        <li><strong>Полнотекстовый поиск</strong> — встроенная поддержка поиска по содержимому</li>
+        <li><strong>Версионирование</strong> — легко хранить историю версий</li>
+      </ul>
+
+      <h3>3.2 Установка MongoDB</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># Ubuntu/Debian
+sudo apt update
+sudo apt install -y mongodb
+
+# Или через Docker (рекомендуется)
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+
+# Проверка подключения
+mongosh
+# Или
+mongo
+</pre>
+      </div>
+
+      <h3>3.3 Mongoose ODM</h3>
+      <p>Mongoose — это ODM (Object Document Mapper) для MongoDB, который упрощает работу с базой данных:</p>
+      <button class="show-code-btn" data-part="mongoose-models">📋 Показать Mongoose модели</button>
+      <button class="show-code-btn" data-part="config-database">📋 Показать подключение к MongoDB</button>
+
+      <h3>3.4 Схемы и модели</h3>
+      <p>Mongoose использует схемы для определения структуры документов:</p>
+      <button class="show-code-btn" data-part="mongoose-schemas">📋 Показать создание схем</button>
+
+      <h3>3.5 Индексы для производительности</h3>
+      <p>Индексы ускоряют поиск и запросы:</p>
+      <button class="show-code-btn" data-part="mongodb-indexes">📋 Показать создание индексов</button>
+
+      <h3>3.6 Запросы и агрегация</h3>
+      <p>Mongoose предоставляет мощный API для работы с данными:</p>
+      <button class="show-code-btn" data-part="mongoose-queries">📋 Показать примеры запросов</button>
+
+      <div class="warning-box">
+        Всегда используйте индексы для часто используемых полей (name, category, createdAt). Это значительно ускорит поиск и фильтрацию.
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 3.1</h4>
+        <p>Создайте модели Template и Version с Mongoose. Реализуйте CRUD операции (создание, чтение, обновление, удаление) для обеих моделей. Добавьте индексы для оптимизации поиска.</p>
+      </div>
+    </div>
+
+    <div id="chapter4" class="chapter">
+      <h2>Глава 4: React Frontend (углубленно)</h2>
+
+      <h3>4.1 Введение в React</h3>
+      <p>React — библиотека JavaScript для создания пользовательских интерфейсов. Ключевые концепции:</p>
+      <ul>
+        <li><strong>Компоненты</strong> — переиспользуемые блоки UI</li>
+        <li><strong>Состояние (State)</strong> — данные компонента</li>
+        <li><strong>Props</strong> — передача данных между компонентами</li>
+        <li><strong>Hooks</strong> — функции для работы с состоянием (useState, useEffect, useContext)</li>
+        <li><strong>Условный рендеринг</strong> — отображение компонентов по условию</li>
+      </ul>
+
+      <h3>4.2 Установка и настройка</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># Установка Node.js и npm
+# Скачайте с nodejs.org (версия 18+)
+
+# Создание React приложения
+npx create-react-app version-control-frontend
+cd version-control-frontend
+
+# Установка дополнительных зависимостей
+npm install axios
+npm install react-router-dom
+npm install @mui/material @emotion/react @emotion/styled
+npm install @mui/icons-material</pre>
+      </div>
+
+      <h3>4.3 Структура компонентов</h3>
+      <p>Создайте структуру компонентов для системы контроля версий:</p>
+      <button class="show-code-btn" data-part="react-structure">📋 Показать структуру компонентов</button>
+
+      <h3>4.4 Работа с API</h3>
+      <p>Создайте сервис для взаимодействия с бэкендом:</p>
+      <button class="show-code-btn" data-part="react-api">📋 Показать API сервис</button>
+
+      <h3>4.5 Компонент списка шаблонов</h3>
+      <p>Реализуйте компонент для отображения списка шаблонов:</p>
+      <button class="show-code-btn" data-part="react-template-list">📋 Показать TemplateList компонент</button>
+
+      <h3>4.6 Компонент истории версий</h3>
+      <p>Создайте компонент для отображения истории версий шаблона:</p>
+      <button class="show-code-btn" data-part="react-version-history">📋 Показать VersionHistory компонент</button>
+
+      <h3>4.7 Обработка состояния с Hooks</h3>
+      <p>Используйте React Hooks для управления состоянием:</p>
+      <button class="show-code-btn" data-part="react-hooks">📋 Показать использование Hooks</button>
+
+      <div class="tip-box">
+        Используйте React DevTools для отладки компонентов и состояния приложения.
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 4.1</h4>
+        <p>Создайте компонент ResultsTable для отображения результатов проверки. Добавьте стилизацию с использованием CSS модулей или styled-components.</p>
+      </div>
+    </div>
+
+    <div id="chapter5" class="chapter">
+      <h2>Глава 5: Архитектура приложения</h2>
+
+      <h3>5.1 Принципы проектирования архитектуры</h3>
+      <p>Правильная архитектура — основа масштабируемого и поддерживаемого приложения:</p>
+      <ul>
+        <li><strong>Разделение ответственности (SoC)</strong> — каждый компонент отвечает за свою задачу</li>
+        <li><strong>Модульность</strong> — независимые, переиспользуемые модули</li>
+        <li><strong>Слабая связанность</strong> — компоненты взаимодействуют через четко определенные интерфейсы</li>
+        <li><strong>Высокая связность</strong> — элементы внутри модуля тесно связаны</li>
+      </ul>
+
+      <h3>5.2 Слоистая архитектура (Layered Architecture)</h3>
+      <p>Традиционная архитектура веб-приложений состоит из слоев: контроллеры, сервисы, модели, утилиты.</p>
+
+      <h3>5.3 Clean Architecture</h3>
+      <p>Clean Architecture обеспечивает независимость бизнес-логики от фреймворков и БД.</p>
+
+      <h3>5.4 Микросервисная архитектура</h3>
+      <p>Для больших систем рассмотрите микросервисный подход с разделением на независимые сервисы.</p>
+
+      <div class="exercise">
+        <h4>Практическое задание 5.1</h4>
+        <p>Реорганизуйте ваше приложение по принципам Clean Architecture. Разделите код на слои: domain, application, infrastructure, presentation.</p>
+      </div>
+    </div>
+
+    <div id="chapter6" class="chapter">
+      <h2>Глава 6: Паттерны проектирования</h2>
+
+      <h3>6.1 Repository Pattern</h3>
+      <p>Паттерн Repository абстрагирует доступ к данным, что упрощает тестирование и поддержку.</p>
+
+      <h3>6.2 Service Layer Pattern</h3>
+      <p>Service Layer содержит бизнес-логику приложения, отделяя её от контроллеров и моделей.</p>
+
+      <h3>6.3 Factory Pattern</h3>
+      <p>Factory Pattern для создания объектов, особенно полезен для создания версий шаблонов.</p>
+
+      <h3>6.4 Observer Pattern</h3>
+      <p>Observer Pattern для событийной архитектуры, позволяет подписываться на изменения шаблонов.</p>
+
+      <div class="exercise">
+        <h4>Практическое задание 6.1</h4>
+        <p>Реализуйте Repository Pattern для работы с шаблонами. Создайте абстрактный репозиторий и конкретную реализацию для MongoDB с использованием Mongoose.</p>
+      </div>
+    </div>
+
+    <div id="chapter7" class="chapter">
+      <h2>Глава 7: Интеграция компонентов</h2>
+
+      <h3>7.1 Настройка CORS</h3>
+      <p>CORS (Cross-Origin Resource Sharing) необходим для связи фронтенда и бэкенда:</p>
+      <button class="show-code-btn" data-part="cors-setup">📋 Показать настройку CORS</button>
+
+      <h3>7.2 Обработка ошибок</h3>
+      <p>Реализуйте централизованную обработку ошибок:</p>
+      <button class="show-code-btn" data-part="express-error-handling">📋 Показать обработку ошибок</button>
+
+      <h3>7.3 Валидация данных</h3>
+      <p>Обеспечьте валидацию на клиенте и сервере:</p>
+      <button class="show-code-btn" data-part="express-validation">📋 Показать валидацию</button>
+
+      <h3>7.4 Тестирование интеграции</h3>
+      <p>Протестируйте взаимодействие всех компонентов:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 🚀 Запуск бэкенда
+cd backend
+npm install
+npm run dev
+
+# 🚀 Запуск фронтенда (в другом терминале)
+cd frontend
+npm install
+npm start
+npm start
+
+# 🧪 Тестирование API
+curl http://localhost:5000/health
+curl http://localhost:5000/api/templates
+
+# 📋 Проверка Swagger документации
+# Откройте в браузере: http://localhost:5000/api-docs</pre>
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 7.1</h4>
+        <p>Реализуйте полный цикл: загрузка файла на фронтенде → отправка на бэкенд → проверка → сохранение в БД → отображение результатов на фронтенде.</p>
+      </div>
+    </div>
+
+    <div id="chapter8" class="chapter">
+      <h2>Глава 8: Оптимизация и производительность</h2>
+
+      <h3>8.1 Оптимизация запросов к базе данных</h3>
+      <p>Правильная оптимизация запросов критична для производительности:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// ⚡ Оптимизация запросов к MongoDB:
+
+// 1️⃣ Используйте индексы
+templateSchema.index({ name: 1 }); // Индекс по названию
+templateSchema.index({ category: 1, isActive: 1 }); // Составной индекс
+
+// 2️⃣ Используйте populate для избежания N+1 проблемы
+const templates = await Template.find()
+    .populate('versions')
+    .exec();
+
+// 3️⃣ Используйте select для выбора только нужных полей
+const templates = await Template.find()
+    .select('name category currentVersion')
+    .exec();
+
+// 4️⃣ Используйте пагинацию
+const templates = await Template.find()
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .exec();
+
+// 5️⃣ Используйте lean() для быстрых запросов (без Mongoose документов)
+const templates = await Template.find().lean();
+
+// 6️⃣ Используйте агрегацию для сложных запросов
+const stats = await Template.aggregate([
+    { $match: { isActive: true } },
+    { $group: { _id: '$category', count: { $sum: 1 } } }
+]);
+
+// 7️⃣ Используйте connection pooling (настроено в Mongoose)
+mongoose.connect(uri, {
+    maxPoolSize: 10,
+    minPoolSize: 5
+});</pre>
+      </div>
+
+      <h3>8.2 Кэширование</h3>
+      <p>Кэширование часто запрашиваемых данных ускоряет работу приложения:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 💾 Кэширование данных:
+
+// 1️⃣ Используйте Redis для кэширования
+const redis = require('redis');
+const client = redis.createClient({ host: 'localhost', port: 6379 });
+
+router.get('/templates/:id', async (req, res) => {
+    const { id } = req.params;
+    
+    // Проверяем кэш
+    const cached = await client.get(\`template:\${id}\`);
+    if (cached) {
+        return res.json(JSON.parse(cached));
+    }
+    
+    // Загружаем из БД
+    const template = await Template.findById(id);
+    
+    // Сохраняем в кэш на 1 час
+    await client.setEx(\`template:\${id}\`, 3600, JSON.stringify(template));
+    
+    res.json(template);
+});
+
+// 2️⃣ Используйте node-cache для простого кэширования в памяти
+const NodeCache = require('node-cache');
+const cache = new NodeCache({ stdTTL: 600 }); // TTL 10 минут
+
+const getTemplateByCode = async (code) => {
+    const cacheKey = \`template-code:\${code}\`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    
+    const template = await Template.findOne({ code });
+    cache.set(cacheKey, template);
+    return template;
+};</pre>
+      </div>
+
+      <h3>8.3 Оптимизация фронтенда</h3>
+      <p>Оптимизация React приложения улучшает пользовательский опыт:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// ⚡ Оптимизация React:
+
+// 1️⃣ Используйте React.memo для предотвращения лишних рендеров
+const TemplateCard = React.memo(({ template }) => {
+  return <div>{template.name}</div>;
+});
+
+// 2️⃣ Используйте useMemo для дорогих вычислений
+const expensiveValue = useMemo(() => {
+  return templates.filter(t => t.isActive).map(t => t.name);
+}, [templates]);
+
+// 3️⃣ Используйте useCallback для функций
+const handleClick = useCallback(() => {
+  // обработка клика
+}, [dependencies]);
+
+// 4️⃣ Ленивая загрузка компонентов
+const LazyComponent = React.lazy(() => import('./LazyComponent'));
+
+// 5️⃣ Виртуализация списков для больших данных
+import { FixedSizeList } from 'react-window';
+
+// 6️⃣ Code splitting
+// webpack автоматически разделяет код на чанки</pre>
+      </div>
+
+      <h3>8.4 Безопасность</h3>
+      <p>Безопасность — критически важный аспект любого приложения. Рассмотрим основные практики:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 🔐 Основные принципы безопасности:
+
+# 1️⃣ Используйте переменные окружения для секретов
+# ❌ Плохо:
+SECRET_KEY = "hardcoded-secret-key"
+
+# ✅ Хорошо:
+SECRET_KEY = os.getenv('SECRET_KEY')
+
+// 2️⃣ Валидируйте все входные данные
+// Используйте express-validator для валидации
+const { body, validationResult } = require('express-validator');
+
+// 3️⃣ Используйте HTTPS в production
+// Настройте SSL/TLS сертификаты
+
+// 4️⃣ Реализуйте аутентификацию и авторизацию
+// Используйте JWT токены, OAuth2
+
+// 5️⃣ Ограничивайте размер загружаемых файлов
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// 6️⃣ Защита от NoSQL-инъекций
+// Mongoose автоматически защищает от NoSQL-инъекций
+// Всегда используйте параметризованные запросы
+
+// 7️⃣ Защита от XSS
+// Экранируйте пользовательский ввод
+const escapeHtml = (text) => {
+    return text.replace(/[&<>"']/g, (m) => {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return map[m];
+    });
+};
+
+// 8️⃣ CORS настройки
+// Ограничьте разрешенные домены
+app.use(cors({
+    origin: ['http://localhost:3000'],
+    credentials: true
+}));</pre>
+      </div>
+
+      <h3>8.5 Тестирование производительности</h3>
+      <p>Профилирование и тестирование производительности помогают найти узкие места:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 🧪 Тестирование производительности:
+
+// 1️⃣ Используйте autocannon или wrk для нагрузочного тестирования
+// npm install -g autocannon
+// autocannon -c 100 -d 30 http://localhost:5000/api/templates
+import pytest
+
+def test_standard_query_performance(benchmark):
+    result = benchmark(
+        lambda: db.query(Standard).filter(Standard.active == True).all()
+    )
+    assert len(result) > 0
+
+# 2️⃣ Используйте cProfile для профилирования
+import cProfile
+import pstats
+
+profiler = cProfile.Profile()
+profiler.enable()
+# Ваш код
+profiler.disable()
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(20)  # Топ 20 функций
+
+// 3️⃣ Мониторинг времени ответа API
+app.use((req, res, next) => {
+    const startTime = Date.now();
+    res.on('finish', () => {
+        const processTime = Date.now() - startTime;
+        res.setHeader('X-Process-Time', processTime.toString());
+    });
+    next();
+});</pre>
+      </div>
+    </div>
+
+    <div id="chapter9" class="chapter">
+      <h2>Глава 9: Безопасность и тестирование</h2>
+
+      <h3>9.1 Безопасность</h3>
+      <p>Безопасность — критически важный аспект любого приложения. Рассмотрим основные практики:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 🔐 Основные принципы безопасности:
+
+// 1️⃣ Используйте переменные окружения для секретов
+// ❌ Плохо:
+const SECRET_KEY = "hardcoded-secret-key";
+
+// ✅ Хорошо:
+const SECRET_KEY = process.env.SECRET_KEY;
+
+// 2️⃣ Валидируйте все входные данные
+// Используйте express-validator для валидации
+const { body, validationResult } = require('express-validator');
+
+// 3️⃣ Используйте HTTPS в production
+// Настройте SSL/TLS сертификаты
+
+// 4️⃣ Реализуйте аутентификацию и авторизацию
+// Используйте JWT токены, OAuth2
+
+// 5️⃣ Ограничивайте размер загружаемых файлов
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// 6️⃣ Защита от NoSQL-инъекций
+// Mongoose автоматически защищает от NoSQL-инъекций
+// Всегда используйте параметризованные запросы
+
+// 7️⃣ Защита от XSS
+// Экранируйте пользовательский ввод
+const escapeHtml = (text) => {
+    return text.replace(/[&<>"']/g, (m) => {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return map[m];
+    });
+};
+
+// 8️⃣ CORS настройки
+// Ограничьте разрешенные домены
+app.use(cors({
+    origin: ['http://localhost:3000'],
+    credentials: true
+}));</pre>
+      </div>
+
+      <h3>9.2 Тестирование</h3>
+      <p>Напишите тесты для критических компонентов:</p>
+      <button class="show-code-btn" data-part="testing">📋 Показать примеры тестов</button>
+
+      <h3>9.3 Документация</h3>
+      <p>Хорошая документация упрощает поддержку и развитие проекта:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 📝 Примеры хорошей документации:
+
+// 1️⃣ JSDoc комментарии в JavaScript коде
+/**
+ * Создает новый шаблон
+ * @param {Object} templateData - Данные шаблона
+ * @param {string} templateData.name - Название шаблона
+ * @param {string} templateData.category - Категория шаблона
+ * @param {string} templateData.content - Содержимое шаблона
+ * @returns {Promise<Object>} Созданный шаблон
+ */
+async function createTemplate(templateData) {
+    """
+    Создает новый стандарт нормоконтроля.
+    
+    Args:
+        rule_code: Уникальный код правила (минимум 3 символа)
+        description: Подробное описание правила (минимум 10 символов)
+    
+    Returns:
+        Standard: Созданный объект стандарта
+    
+    Raises:
+        ValueError: Если данные не прошли валидацию
+    
+    Example:
+        >>> standard = create_standard("RULE_001", "Проверка обязательных полей")
+        >>> print(standard.rule_code)
+        RULE_001
+    """
+    # Реализация...
+
+// 2️⃣ Документация API endpoints
+/**
+ * @route POST /api/templates
+ * @desc Создать новый шаблон
+ * @access Private
+ * @param {Object} req.body - Данные шаблона
+ * @param {string} req.body.name - Название шаблона
+ * @param {string} req.body.category - Категория шаблона
+ * @param {string} req.body.content - Содержимое шаблона
+ * @returns {Object} 201 - Созданный шаблон
+ * @returns {Object} 400 - Некорректные данные
+ */
+router.post('/templates', async (req, res) => {
+    // Реализация...
+});
+
+# 3️⃣ README.md с инструкциями
+# См. раздел "Настройка проекта" выше
+
+// 4️⃣ Комментарии к сложным участкам
+// Этот алгоритм использует алгоритм A* для поиска оптимального пути
+// Сложность: O(n log n), где n - количество узлов</pre>
+      </div>
+
+      <h3>9.4 Мониторинг и логирование</h3>
+      <p>Настройте логирование и мониторинг:</p>
+      <button class="show-code-btn" data-part="logging">📋 Показать настройку логирования</button>
+
+      <div class="highlight-box">
+        <strong>Чеклист перед production:</strong>
+        <ul>
+          <li>✓ Все тесты пройдены</li>
+          <li>✓ Безопасность настроена</li>
+          <li>✓ Логирование работает</li>
+          <li>✓ Мониторинг настроен</li>
+          <li>✓ Документация актуальна</li>
+          <li>✓ Резервное копирование настроено</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="chapter10" class="chapter">
+      <h2>Глава 10: Docker и развертывание</h2>
+
+      <h3>10.1 Введение в Docker</h3>
+      <p>Docker позволяет упаковать приложение и все его зависимости в контейнер. Это обеспечивает:</p>
+      <ul>
+        <li><strong>Изоляция окружения</strong> — каждое приложение работает в своем изолированном контейнере</li>
+        <li><strong>Консистентность между средами</strong> — одинаковое поведение на разработке, тестировании и production</li>
+        <li><strong>Упрощение развертывания</strong> — один образ работает везде</li>
+        <li><strong>Масштабируемость</strong> — легко запускать несколько экземпляров приложения</li>
+        <li><strong>Управление зависимостями</strong> — все зависимости упакованы в образ</li>
+      </ul>
+
+      <h3>10.2 Dockerfile для Backend</h3>
+      <p>Dockerfile определяет, как собрать образ для вашего приложения:</p>
+      <button class="show-code-btn" data-part="dockerfile-backend">📋 Показать Dockerfile для Backend</button>
+
+      <h3>10.3 Dockerfile для Frontend</h3>
+      <p>Для фронтенда нужен отдельный Dockerfile для сборки React приложения:</p>
+      <button class="show-code-btn" data-part="dockerfile-frontend">📋 Показать Dockerfile для Frontend</button>
+
+      <h3>10.4 Docker Compose</h3>
+      <p>Docker Compose упрощает управление несколькими контейнерами. Он позволяет определить все сервисы, их зависимости и настройки в одном файле:</p>
+      <button class="show-code-btn" data-part="docker-compose">📋 Показать docker-compose.yml</button>
+
+      <h3>10.5 Развертывание</h3>
+      <p>После создания Docker Compose файла можно развернуть приложение. Рассмотрим основные команды:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 📦 Сборка и запуск всех сервисов
+docker-compose up --build
+
+# 🔄 Запуск в фоновом режиме
+docker-compose up -d
+
+# 📋 Просмотр логов всех сервисов
+docker-compose logs -f
+
+# 📋 Просмотр логов конкретного сервиса
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# ⏹️ Остановка сервисов
+docker-compose down
+
+# 🗑️ Остановка с удалением volumes (очистка данных)
+docker-compose down -v
+
+# ✅ Проверка статуса контейнеров
+docker-compose ps
+
+# 🔄 Перезапуск конкретного сервиса
+docker-compose restart backend
+
+# 🧹 Очистка неиспользуемых образов
+docker system prune -a
+
+# 📊 Просмотр использования ресурсов
+docker stats</pre>
+      </div>
+
+      <h3>10.6 Переменные окружения в Docker</h3>
+      <p>Для управления конфигурацией используйте переменные окружения:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># .env для docker-compose (Team3: Express + MongoDB + React)
+#
+# Backend
+PORT=5000
+MONGODB_URI=mongodb://rosatom_user:rosatom_pass@mongo:27017/version_control?authSource=admin
+CORS_ORIGIN=http://localhost:3000
+JWT_SECRET=change-me-in-prod
+LOG_LEVEL=info
+
+# (Опционально) Redis, если используете кэш/очереди
+REDIS_URL=redis://redis:6379/0
+
+# (Опционально) Sentry
+SENTRY_DSN=
+
+# Frontend (Create React App читает переменные только с префиксом REACT_APP_)
+REACT_APP_API_BASE_URL=http://localhost:5000/api
+
+# В docker-compose.yml используйте:
+# environment:
+#   - PORT=${PORT}
+#   - MONGODB_URI=${MONGODB_URI}
+#   - CORS_ORIGIN=${CORS_ORIGIN}
+#   - JWT_SECRET=${JWT_SECRET}
+#
+# Или используйте:
+# env_file:
+#   - .env</pre>
+      </div>
+
+      <h3>10.7 Production развертывание</h3>
+      <p>Для production развертывания важно:</p>
+      <ul>
+        <li>Использовать multi-stage builds для уменьшения размера образов</li>
+        <li>Настроить health checks для всех сервисов</li>
+        <li>Использовать secrets для конфиденциальных данных</li>
+        <li>Настроить reverse proxy (Nginx) для фронтенда</li>
+        <li>Настроить SSL/TLS сертификаты</li>
+        <li>Использовать orchestration (Kubernetes, Docker Swarm) для масштабирования</li>
+      </ul>
+
+      <div class="exercise">
+        <h4>Практическое задание 10.1</h4>
+        <p>Создайте Docker Compose файл для всего приложения. Убедитесь, что все сервисы корректно взаимодействуют друг с другом. Добавьте health checks и настройте переменные окружения.</p>
+      </div>
+    </div>
+
+    <div id="chapter11" class="chapter">
+      <h2>Глава 11: Мониторинг и логирование</h2>
+
+      <h3>11.1 Настройка логирования</h3>
+      <p>Правильное логирование помогает отслеживать работу приложения, находить ошибки и анализировать производительность. Рассмотрим настройку структурированного логирования:</p>
+      <button class="show-code-btn" data-part="logging">📋 Показать настройку логирования</button>
+
+      <h3>11.2 Уровни логирования</h3>
+      <p>Используйте разные уровни логирования для разных ситуаций:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 📝 Уровни логирования (Node.js):
+// DEBUG - детальная информация для отладки
+console.debug('Подключение к базе данных...');
+
+// INFO - общая информация о работе приложения
+console.info('Пользователь успешно авторизован');
+
+// WARNING - предупреждения о потенциальных проблемах
+console.warn('Использован устаревший API endpoint');
+
+// ERROR - ошибки, которые не останавливают работу
+console.error('Не удалось отправить email', { err });
+
+// CRITICAL - критические ошибки, требующие немедленного внимания
+console.error('CRITICAL: База данных недоступна!');
+
+// ✅ Для production используйте структурированный логгер (pino/winston)
+// npm i pino pino-pretty
+// const pino = require('pino')({ level: process.env.LOG_LEVEL || 'info' });</pre>
+      </div>
+
+      <h3>11.3 Структурированное логирование</h3>
+      <p>Структурированное логирование упрощает анализ логов:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 📊 Структурированное логирование (Node.js):
+// npm i pino pino-pretty
+const pino = require('pino');
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: { service: 'version-control' }
+});
+
+// Лог запроса
+logger.info({
+  type: 'http_request',
+  method: 'GET',
+  path: '/api/templates',
+  statusCode: 200,
+  durationMs: 45
+}, 'request');
+
+// Лог ошибки
+logger.error({
+  type: 'error',
+  err: { message: 'Invalid input' },
+  context: { userId: 123 }
+}, 'error');</pre>
+      </div>
+
+      <h3>11.4 Мониторинг приложения</h3>
+      <p>Мониторинг позволяет отслеживать производительность и ошибки в реальном времени:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 📊 Мониторинг приложения (Node.js + Express):
+// 1️⃣ Prometheus метрики
+// npm i prom-client
+const promClient = require('prom-client');
+const register = promClient.register;
+
+const requestCount = new promClient.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'endpoint', 'status']
+});
+
+const requestDuration = new promClient.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration',
+  labelNames: ['method', 'endpoint']
+});
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const durationSec = (Date.now() - start) / 1000;
+    requestCount.labels(req.method, req.route?.path || req.path, String(res.statusCode)).inc();
+    requestDuration.labels(req.method, req.route?.path || req.path).observe(durationSec);
+  });
+  next();
+});
+
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
+// 2️⃣ Sentry (ошибки)
+// npm i @sentry/node
+const Sentry = require('@sentry/node');
+Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV });
+
+// 3️⃣ Health check
+app.get('/health', async (req, res) => {
+  const dbOk = await checkDatabase();
+  res.json({
+    status: dbOk ? 'healthy' : 'unhealthy',
+    database: dbOk ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 4️⃣ APM (Application Performance Monitoring)
+// New Relic / Datadog / Elastic APM — подключаются как агенты</pre>
+      </div>
+
+      <h3>11.5 Логирование в файлы</h3>
+      <p>Для production важно сохранять логи в файлы с ротацией:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// 📁 Логирование в файлы с ротацией (Node.js):
+// npm i winston winston-daily-rotate-file
+const winston = require('winston');
+require('winston-daily-rotate-file');
+
+const transport = new winston.transports.DailyRotateFile({
+  filename: 'logs/app-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '10m',
+  maxFiles: '5d'
+});
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [transport, new winston.transports.Console()]
+});
+
+logger.info('server started');</pre>
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 11.1</h4>
+        <p>Настройте структурированное логирование для вашего приложения. Добавьте метрики Prometheus и интегрируйте Sentry для отслеживания ошибок.</p>
+      </div>
+    </div>
+
+    <div id="chapter12" class="chapter">
+      <h2>Глава 12: Продвинутые техники</h2>
+
+      <h3>12.1 Асинхронная обработка задач</h3>
+      <p>В системе версий часто появляются “тяжёлые” операции: построение diff между версиями, генерация превью, проверка шаблона правилами, массовый импорт. Такие задачи лучше выносить в очередь (worker), чтобы API отвечало быстро.</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// ✅ Пример очереди задач: BullMQ + Redis
+// npm i bullmq ioredis
+//
+// backend/src/queue/connection.js
+const IORedis = require('ioredis');
+const connection = new IORedis(process.env.REDIS_URL);
+module.exports = { connection };
+
+// backend/src/queue/jobs.js
+const { Queue } = require('bullmq');
+const { connection } = require('./connection');
+const versionQueue = new Queue('versionQueue', { connection });
+module.exports = { versionQueue };
+
+// backend/src/controllers/versionController.js (фрагмент)
+const { versionQueue } = require('../queue/jobs');
+// После сохранения версии ставим задачу на вычисление diff
+await versionQueue.add('computeDiff', { versionId: createdVersion._id });
+
+// backend/src/worker.js
+const { Worker } = require('bullmq');
+const { connection } = require('./queue/connection');
+const Version = require('./models/Version');
+
+new Worker('versionQueue', async (job) =&gt; {
+  if (job.name === 'computeDiff') {
+    const v = await Version.findById(job.data.versionId);
+    if (!v) return;
+    // Здесь вычислите diff (например, line-by-line) и сохраните в поле v.diff
+    v.diff = { summary: 'computed', at: new Date().toISOString() };
+    await v.save();
+  }
+}, { connection });
+
+// package.json scripts (пример)
+// "dev": "nodemon src/server.js"
+// "worker": "node src/worker.js"</pre>
+      </div>
+      <div class="tip-box">
+        Чтобы это действительно “заработало”, Redis и воркер нужно запустить отдельно от API:
+        <div class="code-block" style="margin-top: 12px;">
+          <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+          <pre># Redis (если не в docker-compose)
+docker run -d --name redis -p 6379:6379 redis:7
+
+# В одном терминале: API
+cd backend &amp;&amp; npm run dev
+
+# Во втором терминале: worker
+cd backend &amp;&amp; npm run worker</pre>
+        </div>
+      </div>
+
+      <h4 style="margin-top: 18px; color: var(--accent);">12.1.1 Полный минимум “под ключ”: server + app + endpoint версии</h4>
+      <p style="margin-bottom: 12px;">Ниже — цельные файлы, чтобы это запускалось без “догадайтесь сами”: API поднимает HTTP + Socket.io, создаёт версию шаблона, ставит задачу в очередь и отправляет событие в UI.</p>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// backend/src/app.js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const mongoose = require('mongoose');
+
+const templatesRoutes = require('./routes/templates');
+const versionsRoutes = require('./routes/versions');
+
+const app = express();
+
+app.use(express.json({ limit: '2mb' }));
+app.use(helmet());
+
+app.use(cors({
+  origin: (process.env.CORS_ORIGIN || '').split(',').filter(Boolean),
+  credentials: true
+}));
+
+app.get('/health', async (req, res) =&gt; {
+  res.json({
+    status: 'ok',
+    mongoReadyState: mongoose.connection.readyState
+  });
+});
+
+app.use('/api', templatesRoutes);
+app.use('/api', versionsRoutes);
+
+module.exports = app;</pre>
+      </div>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// backend/src/server.js
+require('dotenv').config();
+const http = require('http');
+const mongoose = require('mongoose');
+const { Server } = require('socket.io');
+const app = require('./app');
+
+const PORT = Number(process.env.PORT || 5000);
+
+async function start() {
+  await mongoose.connect(process.env.MONGODB_URI);
+
+  const server = http.createServer(app);
+  const io = new Server(server, {
+    cors: { origin: (process.env.CORS_ORIGIN || '').split(',').filter(Boolean) }
+  });
+  app.set('io', io);
+
+  server.listen(PORT, () =&gt; {
+    console.log('API listening on http://localhost:' + PORT);
+  });
+}
+
+start().catch((err) =&gt; {
+  console.error(err);
+  process.exit(1);
+});</pre>
+      </div>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// backend/src/routes/versions.js
+const router = require('express').Router();
+const Template = require('../models/Template');
+const Version = require('../models/Version');
+const { versionQueue } = require('../queue/jobs');
+
+// POST /api/templates/:templateId/versions
+// Создаёт новую версию шаблона, ставит задачу computeDiff и уведомляет UI
+router.post('/templates/:templateId/versions', async (req, res, next) =&gt; {
+  try {
+    const { templateId } = req.params;
+    const { content, message } = req.body;
+
+    const tpl = await Template.findById(templateId);
+    if (!tpl) return res.status(404).json({ error: 'Template not found' });
+
+    const createdVersion = await Version.create({
+      template: tpl._id,
+      content,
+      message: message || 'update',
+      createdAt: new Date()
+    });
+
+    tpl.currentVersion = createdVersion._id;
+    await tpl.save();
+
+    // очередь на вычисление diff (если подключён REDIS_URL и запущен worker)
+    if (process.env.REDIS_URL) {
+      await versionQueue.add('computeDiff', { versionId: createdVersion._id });
+    }
+
+    // WebSocket событие в UI
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('template-changed', {
+        templateId: String(tpl._id),
+        versionId: String(createdVersion._id),
+        event: 'version_created'
+      });
+    }
+
+    res.status(201).json(createdVersion);
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = router;</pre>
+      </div>
+
+      <h3>12.2 WebSockets для real-time обновлений</h3>
+      <p>WebSockets позволяют мгновенно уведомлять UI, что шаблон обновился, появилась новая версия или завершилась фоновая задача (например, diff готов).</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre>// ✅ Socket.io (server + client)
+// npm i socket.io
+//
+// backend/src/server.js (фрагмент)
+const http = require('http');
+const { Server } = require('socket.io');
+const app = require('./app');
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: (process.env.CORS_ORIGIN || '').split(',').filter(Boolean) }
+});
+app.set('io', io);
+
+io.on('connection', (socket) =&gt; {
+  socket.on('disconnect', () =&gt; {});
+});
+
+// ⚠️ Важно: слушаем через server.listen (а не app.listen)
+// server.listen(PORT, () =&gt; console.log('listening'));
+
+// backend/src/controllers/templateController.js (фрагмент)
+// const io = req.app.get('io');
+// io.emit('template-changed', { templateId: tpl._id, event: 'updated' });
+
+// frontend/src/realtime/socket.js (пример)
+// npm i socket.io-client
+import { io } from 'socket.io-client';
+export const socket = io('http://localhost:5000');
+socket.on('template-changed', (payload) =&gt; {
+  // обновите список шаблонов / историю версий
+});</pre>
+      </div>
+      <div class="tip-box">
+        Минимальная интеграция в React (чтобы “видно работало”): подпишитесь на событие и перезагрузите данные.
+        <div class="code-block" style="margin-top: 12px;">
+          <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+          <pre>// frontend/src/components/TemplateList.jsx (фрагмент)
+import { useEffect } from 'react';
+import { socket } from '../realtime/socket';
+
+export function TemplateList() {
+  // допустим, у вас есть функция loadTemplates()
+  useEffect(() =&gt; {
+    const handler = () =&gt; {
+      // loadTemplates();
+    };
+    socket.on('template-changed', handler);
+    return () =&gt; socket.off('template-changed', handler);
+  }, []);
+
+  return null;
+}</pre>
+        </div>
+      </div>
+
+      <h3>12.3 Микросервисная архитектура</h3>
+      <p>Когда продукт вырастет, имеет смысл разделить систему на сервисы: шаблоны, версии, аудит, уведомления, поиск. Это упрощает сопровождение и масштабирование.</p>
+      <ul>
+        <li><strong>templates-service</strong>: CRUD шаблонов, статусы, публикация</li>
+        <li><strong>versions-service</strong>: версии, diff, откаты, сравнение</li>
+        <li><strong>audit-service</strong>: неизменяемый журнал событий (кто/что/когда)</li>
+        <li><strong>notifications-service</strong>: WebSocket/SSE, email, интеграции</li>
+        <li><strong>api-gateway</strong>: единая точка входа, auth, rate limit</li>
+      </ul>
+      <div class="tip-box">
+        Для обмена событиями используйте очередь/шину: Redis Streams, RabbitMQ или Kafka. Например: “TemplateUpdated” → versions-service пересчитывает diff → notifications-service пушит событие в UI.
+      </div>
+
+      <h3>12.4 CI/CD Pipeline</h3>
+      <p>Автоматизируйте развертывание с помощью CI/CD. Это обеспечивает автоматическое тестирование и развертывание при каждом изменении кода:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 🔄 CI/CD Pipeline (GitHub Actions) для Node.js + Docker:
+
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test --if-present
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test --if-present
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build</pre>
+      </div>
+
+      <h3>12.5 Serverless развертывание</h3>
+      <p>Для некоторых сценариев может быть полезно serverless развертывание:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># ☁️ Serverless (Node.js + Express) на AWS Lambda:
+
+# Установка
+npm install --save-dev serverless
+npm install serverless-http
+
+# handler.js (обертка для Express)
+const serverless = require('serverless-http');
+const app = require('./src/app');
+
+module.exports.handler = serverless(app);
+
+# serverless.yml (минимальный пример)
+service: version-control-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: eu-central-1
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: '*'
+
+# Деплой
+# npx serverless deploy</pre>
+      </div>
+
+      <h3>12.6 Интеграция с AI/ML</h3>
+      <p>Современные приложения могут интегрироваться с AI/ML сервисами:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 🤖 Интеграция с AI/ML:
+
+// Пример: автоматическая проверка шаблонов (Node.js)
+// npm i @xenova/transformers
+const { pipeline } = require('@xenova/transformers');
+
+let classifierPromise = pipeline('text-classification', 'Xenova/bert-base-uncased');
+
+router.post('/api/analyze-template', async (req, res) => {
+  try {
+    const classifier = await classifierPromise;
+    const result = await classifier(req.body.content);
+
+    const complianceScore = calculateCompliance(result);
+    res.json({
+      compliance_score: complianceScore,
+      recommendations: generateRecommendations(result)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});</pre>
+      </div>
+
+      <div class="exercise">
+        <h4>Практическое задание 12.1</h4>
+        <p>Настройте CI/CD pipeline для вашего приложения. Добавьте автоматическое тестирование, линтинг и развертывание. Рассмотрите возможность использования GraphQL для гибких запросов данных.</p>
+      </div>
+    </div>
+
+    <div id="checklist" class="chapter">
+      <h2>✅ Чеклист запуска и проверка результата</h2>
+
+      <div class="highlight-box">
+        <strong>Цель:</strong> получить готовый продукт «контроль версий и шаблонов» (Express API + MongoDB + React UI), открыть Swagger в браузере и проверить базовую функциональность (шаблоны + версии).
+      </div>
+
+      <h3>1) Быстрый запуск через Docker (рекомендуется)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># Перейдите в папку, где лежит ваш docker-compose.yml
+cd &lt;project-root&gt;
+
+# Первый запуск (сборка образов)
+docker-compose up --build
+
+# Или в фоне:
+docker-compose up -d --build
+
+# Проверка статуса контейнеров
+docker-compose ps</pre>
+      </div>
+
+      <h3>1.2) Локальный запуск без Docker (Express + MongoDB + React)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># 0) Поднимите MongoDB (вариант: через Docker только для БД)
+docker run -d --name mongo -p 27017:27017 mongo:7
+
+# 1) Backend (Node.js + Express)
+cd &lt;project-root&gt;/backend
+npm install
+
+# Пример .env (локально)
+# PORT=5000
+# MONGODB_URI=mongodb://localhost:27017/version_control
+# CORS_ORIGIN=http://localhost:3000
+
+npm run dev || npm start
+
+# 2) Frontend (React) — в другом терминале
+cd &lt;project-root&gt;/frontend
+npm install
+
+# Пример .env (frontend)
+# REACT_APP_API_BASE_URL=http://localhost:5000/api
+
+npm start</pre>
+      </div>
+
+      <h3>2) Открыть продукт в браузере</h3>
+      <ul>
+        <li><strong>Swagger (API документация):</strong> <code>http://localhost:5000/api-docs</code></li>
+        <li><strong>API (base):</strong> <code>http://localhost:5000/api</code></li>
+        <li><strong>Frontend (React UI):</strong> <code>http://localhost:3000</code></li>
+      </ul>
+
+      <h3>3) Мини-проверка API (командой)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+        <pre># Health-check
+curl http://localhost:5000/health
+
+# Получение списка шаблонов (должен вернуть JSON-массив или объект с данными)
+curl http://localhost:5000/api/templates</pre>
+      </div>
+
+      <h3>4) Мини-проверка UI</h3>
+      <ul>
+        <li><strong>UI открывается</strong> по <code>http://localhost:3000</code></li>
+        <li><strong>UI делает запросы к API</strong> (DevTools → Network видны запросы на <code>http://localhost:5000/api</code>)</li>
+        <li><strong>Базовый сценарий:</strong> создать шаблон → внести изменение → создать новую версию → открыть список версий</li>
+      </ul>
+
+      <h3>5) Частые проблемы и быстрые решения</h3>
+      <div class="warning-box">
+        <strong>Порт занят (3000/5000/27017):</strong> остановите старые процессы или измените порты в <code>docker-compose.yml</code>.<br>
+        <strong>CORS:</strong> проверьте, что в backend разрешён origin <code>http://localhost:3000</code> (см. раздел про CORS).<br>
+        <strong>MongoDB недоступна:</strong> проверьте строку подключения <code>MONGODB_URI</code> и логи <code>docker-compose logs -f mongo</code>.
+      </div>
+    </div>
+
+    <div class="chapter">
+      <h2>Заключение</h2>
+      <p>Поздравляем! Вы прошли полный курс по разработке системы контроля версий и управления шаблонами. Теперь у вас есть все необходимые знания для создания полноценного веб-приложения с использованием Node.js, Express, MongoDB и React.</p>
+      
+      <div class="highlight-box">
+        <strong>Следующие шаги:</strong>
+        <ul>
+          <li>Практикуйтесь, создавая дополнительные функции</li>
+          <li>Изучайте продвинутые темы каждой технологии</li>
+          <li>Участвуйте в open-source проектах</li>
+          <li>Читайте документацию и блоги разработчиков</li>
+        </ul>
+      </div>
+
+      <p style="margin-top: 32px; text-align: center; font-size: 18px; color: var(--accent);">
+        Удачи в разработке! 🚀
+      </p>
+    </div>
+  </div>
+
+  <!-- Модальные окна с кодом -->
+  <div id="modal-container"></div>
+
+  <script>
+    const codeExamples = {
+      'express-architecture': {
+        title: 'Структура Express проекта',
+        content: `
+          <div class="code-section">
+            <h3>📁 Шаг 1: Создайте структуру папок</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте следующую структуру в вашем проекте:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">
+version-control-backend/      # 📦 Главная папка проекта
+├── package.json              # 📋 Зависимости проекта
+├── .env                      # 🔐 Переменные окружения
+│
+├── src/                      # 📁 Исходный код
+│   ├── app.js                # ⭐ Главный файл приложения
+│   ├── server.js             # ⭐ Точка входа (запуск сервера)
+│   │
+│   ├── config/               # ⚙️ Конфигурация
+│   │   ├── database.js        # Подключение к MongoDB
+│   │   └── config.js         # Настройки приложения
+│   │
+│   ├── models/               # 📦 Mongoose модели (схемы БД)
+│   │   ├── Template.js       # Модель шаблона
+│   │   └── Version.js        # Модель версии
+│   │
+│   ├── routes/               # 🌐 Роуты (endpoints)
+│   │   ├── templates.js      # Роуты для шаблонов
+│   │   └── versions.js       # Роуты для версий
+│   │
+│   ├── controllers/          # 🎮 Контроллеры (бизнес-логика)
+│   │   ├── templateController.js
+│   │   └── versionController.js
+│   │
+│   ├── middleware/          # 🔧 Middleware
+│   │   ├── auth.js           # Аутентификация
+│   │   ├── errorHandler.js   # Обработка ошибок
+│   │   └── logger.js         # Логирование
+│   │
+│   └── utils/                # 🛠️ Утилиты
+│       └── validators.js     # Валидация данных
+│
+└── tests/                    # 🧪 Тесты
+    └── routes/
+        └── templates.test.js
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'express-basic': {
+        title: 'Базовое Express приложение',
+        content: `
+          <div class="code-section">
+            <h3>📝 Шаг 1: Создайте файл src/app.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте файл <code>src/app.js</code> с базовым API:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">
+// src/app.js - Главный файл приложения
+
+// 📦 Импорты
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const connectDB = require('./config/database');
+
+// 🔐 Загрузка переменных окружения
+dotenv.config();
+
+// 🚀 Создание экземпляра приложения
+const app = express();
+
+// 🌐 Настройка CORS (разрешить запросы с фронтенда)
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:5173'],  // URL вашего React приложения
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// 📝 Middleware для парсинга JSON
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 🔌 Подключение к базе данных
+connectDB();
+
+// 🌐 Роуты
+app.use('/api/templates', require('./routes/templates'));
+app.use('/api/versions', require('./routes/versions'));
+
+// 🏠 Базовый роут
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Система контроля версий и управления шаблонами API',
+        version: '1.0.0'
+    });
+});
+
+// ⚠️ Обработка 404
+app.use((req, res) => {
+    res.status(404).json({ error: 'Маршрут не найден' });
+});
+
+// ⚠️ Обработка ошибок
+app.use(require('./middleware/errorHandler'));
+
+module.exports = app;
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Шаг 2: Создайте файл src/server.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте файл <code>src/server.js</code> для запуска сервера:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">
+// src/server.js - Точка входа приложения
+
+const app = require('./app');
+
+const PORT = process.env.PORT || 5000;
+
+// ▶️ Запуск сервера
+app.listen(PORT, () => {
+    console.log('✅ Сервер запущен на порту ' + PORT);
+    console.log('📚 API доступно по адресу: http://localhost:' + PORT);
+});
+
+// ⚠️ Обработка ошибок при запуске
+process.on('unhandledRejection', (err) => {
+    console.error('❌ Необработанная ошибка:', err);
+    process.exit(1);
+});
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'setup-requirements': {
+        title: 'Полный package.json',
+        content: `
+          <div class="code-section">
+            <h3>📋 Создайте файл package.json</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте файл <code>package.json</code> в корне проекта:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">{
+  "name": "version-control-backend",
+  "version": "1.0.0",
+  "description": "Система контроля версий и управления шаблонами",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
+  }
+}</pre>
+            </div>
+          </div>
+        `
+      },
+      'setup-env-file': {
+        title: 'Настройка .env файла',
+        content: `
+          <div class="code-section">
+            <h3>🔐 Создайте файл .env</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте файл <code>.env</code> в корне проекта:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;"># .env - Переменные окружения
+
+# 🌐 Сервер
+PORT=5000
+NODE_ENV=development
+
+# 💾 MongoDB
+MONGODB_URI=mongodb://localhost:27017/version_control
+# Или для Docker:
+# MONGODB_URI=mongodb://mongo:27017/version_control
+
+# 🔐 JWT
+JWT_SECRET=your_super_secret_jwt_key_change_in_production
+JWT_EXPIRE=7d
+
+# 🔒 CORS
+CORS_ORIGIN=http://localhost:3000</pre>
+            </div>
+          </div>
+        `
+      },
+      'express-routes': {
+        title: 'Express роуты',
+        content: `
+          <div class="code-section">
+            <h3>📝 Шаг 1: Создайте файл src/routes/templates.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте папку <code>src/routes/</code> и файл <code>templates.js</code>:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/routes/templates.js - Роуты для работы с шаблонами
+
+// 📦 Импорты
+const express = require('express');
+const router = express.Router();  // Создание роутера
+const templateController = require('../controllers/templateController');
+
+// 📋 GET /api/templates - Получить список шаблонов
+router.get('/', templateController.getTemplates);
+
+// 📋 GET /api/templates/:id - Получить один шаблон
+router.get('/:id', templateController.getTemplate);
+
+// 📋 POST /api/templates - Создать новый шаблон
+router.post('/', templateController.createTemplate);
+
+// 📋 PUT /api/templates/:id - Обновить шаблон
+router.put('/:id', templateController.updateTemplate);
+
+// 📋 DELETE /api/templates/:id - Удалить шаблон
+router.delete('/:id', templateController.deleteTemplate);
+
+// 📋 GET /api/templates/:id/versions - Получить версии шаблона
+router.get('/:id/versions', templateController.getTemplateVersions);
+
+// 📤 Экспорт роутера
+module.exports = router;
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Шаг 2: Подключите роуты в src/app.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Добавьте эти строки в файл <code>src/app.js</code> после middleware:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/app.js
+
+const express = require('express');
+const cors = require('cors');
+const connectDB = require('./config/database');
+
+// 📦 Импорт роутов
+const templateRoutes = require('./routes/templates');
+const versionRoutes = require('./routes/versions');
+
+const app = express();
+connectDB();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// 🔗 Подключение роутов
+// Все запросы к /api/templates будут обрабатываться templateRoutes
+app.use('/api/templates', templateRoutes);
+
+// Все запросы к /api/versions будут обрабатываться versionRoutes
+app.use('/api/versions', versionRoutes);
+
+module.exports = app;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'mongoose-models': {
+        title: 'Mongoose модели для шаблонов и версий',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/models/Template.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Модель шаблона с Mongoose:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/models/Template.js
+
+const mongoose = require('mongoose');
+
+const templateSchema = new mongoose.Schema({
+    name: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        trim: true, 
+        index: true 
+    },
+    description: { 
+        type: String, 
+        default: '' 
+    },
+    category: { 
+        type: String, 
+        required: true, 
+        index: true 
+    },
+    content: { 
+        type: String, 
+        required: true 
+    }, // Содержимое шаблона
+    currentVersion: { 
+        type: Number, 
+        default: 1 
+    },
+    tags: [{ 
+        type: String, 
+        trim: true 
+    }],
+    isActive: { 
+        type: Boolean, 
+        default: true 
+    },
+    createdBy: { 
+        type: String, 
+        required: true 
+    },
+    updatedBy: { 
+        type: String 
+    }
+}, {
+    timestamps: true // Добавляет createdAt и updatedAt
+});
+
+// Текстовый индекс для полнотекстового поиска
+templateSchema.index({
+    name: 'text',
+    description: 'text',
+    content: 'text',
+    tags: 'text'
+});
+
+module.exports = mongoose.model('Template', templateSchema);
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Создайте файл src/models/Version.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Модель версии шаблона:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/models/Version.js
+
+const mongoose = require('mongoose');
+
+const versionSchema = new mongoose.Schema({
+    templateId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Template',
+        required: true,
+        index: true
+    },
+    versionNumber: { 
+        type: Number, 
+        required: true 
+    },
+    content: { 
+        type: String, 
+        required: true 
+    },
+    changes: [{
+        field: String,
+        oldValue: String,
+        newValue: String,
+        changeType: {
+            type: String,
+            enum: ['added', 'modified', 'deleted']
+        }
+    }],
+    changeDescription: { 
+        type: String, 
+        required: true 
+    },
+    createdBy: { 
+        type: String, 
+        required: true 
+    }
+}, {
+    timestamps: true
+});
+
+// Составной индекс
+versionSchema.index({ templateId: 1, versionNumber: 1 });
+
+module.exports = mongoose.model('Version', versionSchema);
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'express-middleware': {
+        title: 'Express Middleware',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/middleware/errorHandler.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Централизованная обработка ошибок:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/middleware/errorHandler.js
+
+const errorHandler = (err, req, res, next) => {
+    console.error(err.stack); // Логирование стека ошибки для отладки
+
+    // Ошибка валидации (например, от express-validator)
+    if (err.array) {
+        return res.status(400).json({
+            error: 'Ошибка валидации',
+            details: err.array()
+        });
+    }
+
+    // Ошибка каста (неправильный ID)
+    if (err.name === 'CastError') {
+        return res.status(400).json({
+            error: 'Некорректный ID'
+        });
+    }
+
+    // Ошибка аутентификации
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            error: 'Недействительный токен'
+        });
+    }
+
+    // Общая ошибка сервера
+    res.status(err.status || 500).json({
+        error: err.message || 'Внутренняя ошибка сервера',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+};
+
+module.exports = errorHandler;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'express-validation': {
+        title: 'Валидация данных',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/middleware/validators.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Валидация с express-validator:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/middleware/validators.js
+
+const { body, validationResult } = require('express-validator');
+
+// Валидация создания шаблона
+const validateTemplate = [
+    body('name')
+        .trim()
+        .isLength({ min: 3 })
+        .withMessage('Название шаблона должно быть не менее 3 символов'),
+    body('category')
+        .trim()
+        .notEmpty()
+        .withMessage('Категория шаблона обязательна'),
+    body('content')
+        .trim()
+        .isLength({ min: 10 })
+        .withMessage('Содержимое шаблона должно быть не менее 10 символов'),
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+        next();
+    }
+];
+
+module.exports = { validateTemplate };
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'express-error-handling': {
+        title: 'Обработка ошибок',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/controllers/templateController.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Контроллер с обработкой ошибок:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/controllers/templateController.js
+
+const Template = require('../models/Template');
+const Version = require('../models/Version');
+
+// GET /api/templates - Получить список шаблонов
+exports.getTemplates = async (req, res, next) => {
+    try {
+        const templates = await Template.find({ isActive: true })
+            .sort({ createdAt: -1 })
+            .limit(10);
+        
+        res.json(templates);
+    } catch (error) {
+        next(error); // Передача ошибки в errorHandler
+    }
+};
+
+// GET /api/templates/:id - Получить один шаблон
+exports.getTemplate = async (req, res, next) => {
+    try {
+        const template = await Template.findById(req.params.id);
+        
+        if (!template) {
+            return res.status(404).json({ error: 'Шаблон не найден' });
+        }
+        
+        res.json(template);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// POST /api/templates - Создать новый шаблон
+exports.createTemplate = async (req, res, next) => {
+    try {
+        const template = new Template(req.body);
+        await template.save();
+        
+        res.status(201).json(template);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// PUT /api/templates/:id - Обновить шаблон
+exports.updateTemplate = async (req, res, next) => {
+    try {
+        const template = await Template.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+        
+        if (!template) {
+            return res.status(404).json({ error: 'Шаблон не найден' });
+        }
+        
+        res.json(template);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// DELETE /api/templates/:id - Удалить шаблон
+exports.deleteTemplate = async (req, res, next) => {
+    try {
+        const template = await Template.findByIdAndDelete(req.params.id);
+        
+        if (!template) {
+            return res.status(404).json({ error: 'Шаблон не найден' });
+        }
+        
+        res.json({ message: 'Шаблон удален', template });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// GET /api/templates/:id/versions - Получить версии шаблона
+exports.getTemplateVersions = async (req, res, next) => {
+    try {
+        const versions = await Version.find({ templateId: req.params.id })
+            .sort({ versionNumber: -1 });
+        
+        res.json(versions);
+    } catch (error) {
+        next(error);
+    }
+};
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'config-database': {
+        title: 'Подключение к MongoDB',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/config/database.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Подключение к MongoDB через Mongoose:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/config/database.js
+
+const mongoose = require('mongoose');
+
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        console.log('✅ MongoDB подключена: ' + conn.connection.host);
+    } catch (error) {
+        console.error('❌ Ошибка подключения к MongoDB:', error.message);
+        process.exit(1);
+    }
+};
+
+module.exports = connectDB;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'mongoose-schemas': {
+        title: 'Создание Mongoose схем',
+        content: `
+          <div class="code-section">
+            <h3>📝 Расширенные возможности схем Mongoose</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Mongoose позволяет создавать сложные схемы с валидацией:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/models/Template.js - Расширенная схема
+
+const mongoose = require('mongoose');
+
+const templateSchema = new mongoose.Schema({
+    name: { 
+        type: String, 
+        required: [true, 'Название шаблона обязательно'],
+        unique: true,
+        trim: true,
+        minlength: [3, 'Название должно быть не менее 3 символов'],
+        maxlength: [100, 'Название должно быть не более 100 символов']
+    },
+    description: { 
+        type: String, 
+        default: '',
+        maxlength: [500, 'Описание должно быть не более 500 символов']
+    },
+    category: { 
+        type: String, 
+        required: true,
+        enum: ['technical', 'legal', 'administrative', 'other'],
+        index: true
+    },
+    content: { 
+        type: String, 
+        required: [true, 'Содержимое шаблона обязательно'],
+        minlength: [10, 'Содержимое должно быть не менее 10 символов']
+    },
+    currentVersion: { 
+        type: Number, 
+        default: 1,
+        min: [1, 'Версия должна быть не менее 1']
+    },
+    tags: [{ 
+        type: String, 
+        trim: true,
+        lowercase: true
+    }],
+    isActive: { 
+        type: Boolean, 
+        default: true 
+    },
+    createdBy: { 
+        type: String, 
+        required: true 
+    },
+    updatedBy: { 
+        type: String 
+    }
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Виртуальное поле для количества версий
+templateSchema.virtual('versionCount', {
+    ref: 'Version',
+    localField: '_id',
+    foreignField: 'templateId',
+    count: true
+});
+
+module.exports = mongoose.model('Template', templateSchema);
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'mongodb-indexes': {
+        title: 'Создание индексов MongoDB',
+        content: `
+          <div class="code-section">
+            <h3>📝 Индексы для оптимизации запросов</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Индексы ускоряют поиск и фильтрацию:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/models/Template.js - Добавление индексов
+
+// Одиночные индексы
+templateSchema.index({ name: 1 }); // Индекс по названию
+templateSchema.index({ category: 1 }); // Индекс по категории
+templateSchema.index({ createdAt: -1 }); // Индекс по дате создания (убывание)
+
+// Составной индекс для поиска по категории и статусу
+templateSchema.index({ category: 1, isActive: 1 });
+
+// Текстовый индекс для полнотекстового поиска
+templateSchema.index({
+    name: 'text',
+    description: 'text',
+    content: 'text',
+    tags: 'text'
+});
+
+// Уникальный составной индекс
+templateSchema.index({ name: 1, category: 1 }, { unique: true });
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'mongoose-queries': {
+        title: 'Примеры запросов Mongoose',
+        content: `
+          <div class="code-section">
+            <h3>📝 Основные операции с данными</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Примеры CRUD операций:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// Примеры запросов Mongoose
+
+const Template = require('./models/Template');
+
+// 1. Найти все активные шаблоны
+const templates = await Template.find({ isActive: true });
+
+// 2. Найти шаблоны по категории с сортировкой
+const technicalTemplates = await Template.find({ category: 'technical' })
+    .sort({ createdAt: -1 })
+    .limit(10);
+
+// 3. Полнотекстовый поиск
+const searchResults = await Template.find({ 
+    $text: { $search: 'договор' } 
+});
+
+// 4. Найти один шаблон по ID
+const template = await Template.findById(templateId);
+
+// 5. Создать новый шаблон
+const newTemplate = new Template({
+    name: 'Новый шаблон',
+    category: 'technical',
+    content: 'Содержимое шаблона',
+    createdBy: 'user123'
+});
+await newTemplate.save();
+
+// 6. Обновить шаблон
+await Template.findByIdAndUpdate(
+    templateId,
+    { currentVersion: 2 },
+    { new: true }
+);
+
+// 7. Удалить шаблон (мягкое удаление)
+await Template.findByIdAndUpdate(
+    templateId,
+    { isActive: false }
+);
+
+// 8. Агрегация - подсчет шаблонов по категориям
+const stats = await Template.aggregate([
+    { $match: { isActive: true } },
+    { $group: { 
+        _id: '$category', 
+        count: { $sum: 1 } 
+    }},
+    { $sort: { count: -1 } }
+]);
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'react-structure': {
+        title: 'Структура React компонентов',
+        content: `
+          <div class="code-section">
+            <h3>📁 Организация файлов React приложения</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Создайте следующую структуру:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">version-control-frontend/
+├── public/
+│   └── index.html
+├── src/
+│   ├── components/
+│   │   ├── TemplateList/
+│   │   │   ├── TemplateList.jsx
+│   │   │   └── TemplateList.css
+│   │   ├── TemplateForm/
+│   │   │   ├── TemplateForm.jsx
+│   │   │   └── TemplateForm.css
+│   │   ├── VersionHistory/
+│   │   │   ├── VersionHistory.jsx
+│   │   │   └── VersionHistory.css
+│   │   └── SearchTemplates/
+│   │       ├── SearchTemplates.jsx
+│   │       └── SearchTemplates.css
+│   ├── services/
+│   │   └── api.js
+│   ├── App.jsx
+│   ├── App.css
+│   └── index.js
+├── package.json
+└── README.md
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'react-api': {
+        title: 'API сервис для React',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/services/api.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Сервис для работы с API:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/services/api.js
+
+const API_BASE = 'http://localhost:5000/api';
+
+class ApiService {
+    // GET /api/templates - Получить список шаблонов
+    async getTemplates(page = 1, limit = 10, filters = {}) {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            ...filters
+        });
+        
+        const response = await fetch(API_BASE + '/templates?' + params);
+        
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке шаблонов');
+        }
+        
+        return await response.json();
+    }
+
+    // GET /api/templates/:id - Получить один шаблон
+    async getTemplate(id) {
+        const response = await fetch(API_BASE + '/templates/' + id);
+        
+        if (!response.ok) {
+            throw new Error('Шаблон не найден');
+        }
+        
+        return await response.json();
+    }
+
+    // POST /api/templates - Создать новый шаблон
+    async createTemplate(templateData) {
+        const response = await fetch(API_BASE + '/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(templateData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Ошибка при создании шаблона');
+        }
+        
+        return await response.json();
+    }
+
+    // GET /api/templates/:id/versions - Получить версии шаблона
+    async getTemplateVersions(templateId) {
+        const response = await fetch(API_BASE + '/templates/' + templateId + '/versions');
+        
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке версий');
+        }
+        
+        return await response.json();
+    }
+}
+
+export default new ApiService();
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'react-template-list': {
+        title: 'Компонент TemplateList',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте компонент src/components/TemplateList/TemplateList.jsx</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Компонент для отображения списка шаблонов:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/components/TemplateList/TemplateList.jsx
+
+import React, { useState, useEffect } from 'react';
+import ApiService from '../../services/api';
+import './TemplateList.css';
+
+function TemplateList({ onTemplateSelect, onNewTemplate }) {
+    const [templates, setTemplates] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [filters, setFilters] = useState({
+        category: '',
+        search: ''
+    });
+
+    useEffect(() => {
+        loadTemplates();
+    }, [currentPage, filters]);
+
+    const loadTemplates = async () => {
+        setLoading(true);
+        try {
+            const data = await ApiService.getTemplates(currentPage, 10, filters);
+            setTemplates(data.templates || data);
+        } catch (error) {
+            console.error('Ошибка загрузки шаблонов:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFilterChange = (e) => {
+        setFilters({ ...filters, [e.target.name]: e.target.value });
+        setCurrentPage(1);
+    };
+
+    if (loading) {
+        return <p>Загрузка шаблонов...</p>;
+    }
+
+    return (
+        <div className="template-list-container">
+            <h2>Список шаблонов</h2>
+            <div className="filters">
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Поиск по названию/описанию"
+                    value={filters.search}
+                    onChange={handleFilterChange}
+                />
+                <select name="category" value={filters.category} onChange={handleFilterChange}>
+                    <option value="">Все категории</option>
+                    <option value="technical">Технические</option>
+                    <option value="legal">Юридические</option>
+                    <option value="administrative">Административные</option>
+                </select>
+                <button onClick={onNewTemplate}>+ Создать новый шаблон</button>
+            </div>
+            <ul className="template-list">
+                {templates.map(template => (
+                    <li key={template._id} onClick={() => onTemplateSelect(template)}>
+                        <h3>{template.name}</h3>
+                        <p>{template.description}</p>
+                        <span className="template-category">{template.category}</span>
+                        <span className="template-version">Версия: {template.currentVersion}</span>
+                    </li>
+                ))}
+            </ul>
+            <div className="pagination">
+                <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
+                    Предыдущая
+                </button>
+                <span>Страница {currentPage}</span>
+                <button onClick={() => setCurrentPage(prev => prev + 1)} disabled={templates.length < 10}>
+                    Следующая
+                </button>
+            </div>
+        </div>
+    );
+}
+
+export default TemplateList;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'react-version-history': {
+        title: 'Компонент VersionHistory',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте компонент src/components/VersionHistory/VersionHistory.jsx</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Компонент для отображения истории версий:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/components/VersionHistory/VersionHistory.jsx
+
+import React, { useState, useEffect } from 'react';
+import ApiService from '../../services/api';
+import './VersionHistory.css';
+
+function VersionHistory({ templateId, onVersionSelect }) {
+    const [versions, setVersions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedVersions, setSelectedVersions] = useState([]);
+
+    useEffect(() => {
+        if (templateId) {
+            loadVersions();
+        }
+    }, [templateId]);
+
+    const loadVersions = async () => {
+        setLoading(true);
+        try {
+            const data = await ApiService.getTemplateVersions(templateId);
+            setVersions(data.versions || data);
+        } catch (error) {
+            console.error('Ошибка загрузки версий:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVersionSelect = (version) => {
+        const newSelected = selectedVersions.includes(version._id)
+            ? selectedVersions.filter(id => id !== version._id)
+            : [...selectedVersions, version._id].slice(-2);
+        setSelectedVersions(newSelected);
+        if (onVersionSelect) {
+            onVersionSelect(version);
+        }
+    };
+
+    if (loading) {
+        return <p>Загрузка истории версий...</p>;
+    }
+
+    return (
+        <div className="version-history">
+            <h3>История версий</h3>
+            <ul className="version-list">
+                {versions.map(version => (
+                    <li 
+                        key={version._id}
+                        className={'version-item ' + (selectedVersions.includes(version._id) ? 'selected' : '')}
+                        onClick={() => handleVersionSelect(version)}
+                    >
+                        <div className="version-header">
+                            <span className="version-number">v{version.versionNumber}</span>
+                            <span className="version-date">
+                                {new Date(version.createdAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <p className="version-description">{version.changeDescription}</p>
+                        <div className="version-author">Автор: {version.createdBy}</div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+export default VersionHistory;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'react-hooks': {
+        title: 'Использование React Hooks',
+        content: `
+          <div class="code-section">
+            <h3>📝 Примеры использования Hooks</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Основные Hooks для управления состоянием:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// Примеры использования React Hooks
+
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+
+// useState - управление состоянием
+function TemplateForm() {
+    const [template, setTemplate] = useState({
+        name: '',
+        category: '',
+        content: ''
+    });
+    
+    const handleChange = (e) => {
+        setTemplate({
+            ...template,
+            [e.target.name]: e.target.value
+        });
+    };
+}
+
+// useEffect - побочные эффекты
+function TemplateList() {
+    const [templates, setTemplates] = useState([]);
+    
+    useEffect(() => {
+        // Загрузка данных при монтировании компонента
+        loadTemplates();
+    }, []); // Пустой массив = выполнить только при монтировании
+    
+    useEffect(() => {
+        // Выполнить при изменении filters
+        loadTemplates();
+    }, [filters]); // Выполнить при изменении filters
+}
+
+// useCallback - мемоизация функций
+const handleTemplateSelect = useCallback((template) => {
+    setSelectedTemplate(template);
+}, []);
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'dockerfile-backend': {
+        title: 'Dockerfile для Backend',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл backend/Dockerfile</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Dockerfile для Node.js/Express приложения:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;"># backend/Dockerfile
+
+# 📦 Базовый образ Node.js (Alpine - легковесный)
+FROM node:18-alpine
+
+# 📁 Рабочая директория
+WORKDIR /app
+
+# 📋 Копирование package.json и package-lock.json
+# Установка зависимостей (кэшируется если package.json не изменился)
+COPY package*.json ./
+RUN npm ci --only=production
+
+# 📂 Копирование всего кода приложения
+COPY . .
+
+# 🔌 Открытие порта 5000 (порт Express приложения)
+EXPOSE 5000
+
+# ▶️ Команда запуска Node.js приложения
+CMD ["node", "src/server.js"]
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'dockerfile-frontend': {
+        title: 'Dockerfile для Frontend',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл frontend/Dockerfile</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Dockerfile для React приложения:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;"># frontend/Dockerfile
+
+# 📦 Базовый образ Node.js (Alpine - легковесный)
+FROM node:18-alpine
+
+# 📁 Рабочая директория
+WORKDIR /app
+
+# 📋 Копирование package.json и package-lock.json
+COPY package*.json ./
+RUN npm install
+
+# 📂 Копирование всего кода приложения
+COPY . .
+
+# 🔌 Открытие порта 3000 (стандартный порт React)
+EXPOSE 3000
+
+# ▶️ Команда запуска React приложения
+CMD ["npm", "start"]
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'docker-compose': {
+        title: 'Docker Compose конфигурация',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл docker-compose.yml</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Полная конфигурация для развертывания:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">version: '3.8'
+
+services:
+  # 💾 MongoDB база данных
+  mongo:
+    image: mongo:latest
+    container_name: version-control-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rosatom_user
+      MONGO_INITDB_ROOT_PASSWORD: rosatom_pass
+      MONGO_INITDB_DATABASE: version_control
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  # 🔧 Backend (Node.js + Express)
+  backend:
+    build: ./backend
+    container_name: version-control-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGODB_URI: mongodb://rosatom_user:rosatom_pass@mongo:27017/version_control?authSource=admin
+      JWT_SECRET: your_jwt_secret_key
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: npm run dev
+
+  # 🎨 Frontend (React)
+  frontend:
+    build: ./frontend
+    container_name: version-control-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_BASE_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: npm start
+
+volumes:
+  mongo_data:
+
+networks:
+  app-network:
+    driver: bridge
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'cors-setup': {
+        title: 'Настройка CORS',
+        content: `
+          <div class="code-section">
+            <h3>📝 Настройка CORS в src/app.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">CORS позволяет React приложению делать запросы к API:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/app.js
+
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+// 🌐 Настройка CORS (Cross-Origin Resource Sharing)
+// Позволяет React приложению делать запросы к API
+app.use(cors({
+    origin: [
+        "http://localhost:3000", // React dev server
+        "http://localhost:5173", // Vite dev server
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+module.exports = app;
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'api-documentation': {
+        title: 'Настройка Swagger документации',
+        content: `
+          <div class="code-section">
+            <h3>📝 Шаг 1: Установите swagger-ui-express и swagger-jsdoc</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Установите пакеты для документации API:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">npm install swagger-ui-express swagger-jsdoc
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Шаг 2: Создайте файл src/config/swagger.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Конфигурация Swagger:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/config/swagger.js
+
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Система контроля версий и управления шаблонами API',
+      version: '1.0.0',
+      description: 'REST API для управления шаблонами и версиями',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'Локальный сервер разработки'
+      }
+    ]
+  },
+  apis: ['./src/routes/*.js']
+};
+
+const swaggerSpec = swaggerJsdoc(options);
+
+module.exports = { swaggerUi, swaggerSpec };
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Шаг 3: Подключите Swagger в src/app.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Добавьте Swagger в приложение:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/app.js
+
+const { swaggerUi, swaggerSpec } = require('./config/swagger');
+
+// ... другие middleware ...
+
+// 📚 Swagger документация
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// После запуска сервера откройте:
+// http://localhost:5000/api-docs
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'testing': {
+        title: 'Тестирование',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл tests/templates.test.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Пример теста для API:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// tests/templates.test.js
+
+const request = require('supertest');
+const app = require('../src/app');
+
+describe('Templates API', () => {
+    test('GET /api/templates should return list of templates', async () => {
+        const response = await request(app)
+            .get('/api/templates')
+            .expect(200);
+        
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    test('POST /api/templates should create a new template', async () => {
+        const newTemplate = {
+            name: 'Test Template',
+            category: 'technical',
+            content: 'Test content',
+            createdBy: 'test-user'
+        };
+
+        const response = await request(app)
+            .post('/api/templates')
+            .send(newTemplate)
+            .expect(201);
+        
+        expect(response.body.name).toBe(newTemplate.name);
+    });
+});
+</pre>
+            </div>
+          </div>
+        `
+      },
+      'logging': {
+        title: 'Настройка логирования',
+        content: `
+          <div class="code-section">
+            <h3>📝 Создайте файл src/middleware/logger.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Middleware для логирования запросов:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/middleware/logger.js
+
+const logger = (req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(\`[\${timestamp}] \${req.method} \${req.path}\`);
+    next();
+};
+
+module.exports = logger;
+</pre>
+            </div>
+
+            <h3 style="margin-top: 24px;">📝 Подключите logger в src/app.js</h3>
+            <p style="margin-bottom: 16px; color: #9ab2c4;">Добавьте logger middleware:</p>
+            <div class="code-full">
+              <button class="copy-btn" onclick="copyCode(this)">Копировать</button>
+<pre style="background: var(--code-bg); padding: 16px; border-radius: 8px; overflow-x: auto;">// src/app.js
+
+const logger = require('./middleware/logger');
+
+// Подключите logger перед роутами
+app.use(logger);
+</pre>
+            </div>
+          </div>
+        `
+      }
+    };
+
+    // Диагностика отключена (панель/рамка убраны)
+    function dbg() {}
+
+    function openModal(modalId) {
+      dbg('openModal вызван', { modalId });
+
+      const data = codeExamples ? codeExamples[modalId] : undefined;
+      if (!data) {
+        dbg('Нет данных для modalId', { modalId, hasCodeExamples: !!codeExamples });
+        alert('Код для этого раздела пока не добавлен.');
+        return;
+      }
+
+      const container = document.getElementById('modal-container');
+      if (!container) {
+        dbg('Не найден #modal-container — модалка не может быть показана');
+        alert('Ошибка: не найден контейнер модального окна (#modal-container).');
+        return;
+      }
+
+      // ВАЖНО: если где-то выше сломана разметка, #modal-container может оказаться внутри .book-container
+      // (и тогда модалка "уезжает" вниз и становится невидимой). В таком случае переносим контейнер в <body>.
+      const containerInBook = !!container.closest('.book-container');
+      if (containerInBook) {
+        dbg('modal-container находится внутри .book-container — переношу в body');
+        document.body.appendChild(container);
+      }
+
+      // Удаляем предыдущие модалки (если вдруг зависли)
+      document.querySelectorAll('.modal').forEach(m => m.remove());
+
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      // Жёсткая страховка: даже если CSS “сломался”, модалка должна быть видимой и во вьюпорте
+      Object.assign(modal.style, {
+        position: 'fixed',
+        left: '0',
+        top: '0',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0, 0, 0, 0.85)',
+        zIndex: '2147483647',
+        visibility: 'visible',
+        opacity: '1',
+        pointerEvents: 'auto'
+      });
+
+      // Каркас
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>${String(data.title || 'Код')}</h2>
+            <button class="modal-close" onclick="closeModal(this)">&times;</button>
+          </div>
+          <div class="modal-body"></div>
+        </div>
+      `;
+
+      const body = modal.querySelector('.modal-body');
+      const raw = (data.content == null) ? '' : String(data.content);
+
+      // Если контент пустой — покажем диагностическое сообщение
+      if (!raw.trim()) {
+        dbg('data.content пустой', { modalId, title: data.title });
+        body.innerHTML = `<div class="warning-box"><strong>Пустой контент:</strong> для <code>${modalId}</code> поле <code>content</code> пустое.</div>`;
+      } else {
+        // Вставляем контент; innerHTML обычно не бросает исключений, поэтому дополнительно проверим результат
+        body.innerHTML = raw;
+        if (!body.textContent || !body.textContent.trim()) {
+          dbg('После вставки innerHTML body оказался пустым — fallback в <pre>', { modalId, rawLength: raw.length });
+          body.innerHTML = '';
+          const pre = document.createElement('pre');
+          pre.style.background = 'var(--code-bg)';
+          pre.style.padding = '16px';
+          pre.style.borderRadius = '8px';
+          pre.style.overflowX = 'auto';
+          pre.textContent = raw;
+          body.appendChild(pre);
+        }
+      }
+
+      // ✅ Нормализация кода: если JSX/HTML попали в <pre> как реальные теги, показываем их текстом
+      try {
+        body.querySelectorAll('pre').forEach((pre) => {
+          if (pre.children && pre.children.length > 0) {
+            const rawHtml = pre.innerHTML;
+            pre.textContent = rawHtml.replace(/<br\s*\/?>/gi, '\n');
+          }
+        });
+      } catch (_) {}
+
+      // Закрытие по клику на фон
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal(modal.querySelector('.modal-close'));
+        }
+      });
+
+      // Показ
+      container.appendChild(modal);
+      // Если position:fixed вдруг не сработал (например, из-за transform на ancestor),
+      // прокрутим к модалке до блокировки скролла, иначе страница “залипает” вне экрана.
+      const pos = getComputedStyle(modal).position;
+      if (pos !== 'fixed') {
+        dbg('position не fixed — делаю scrollIntoView()', { position: pos });
+        modal.scrollIntoView({ block: 'center' });
+      }
+
+      document.body.style.overflow = 'hidden';
+
+      // Финальный контроль видимости
+      const mc = modal.querySelector('.modal-content');
+      const modalStyle = getComputedStyle(modal);
+      const mcStyle = mc ? getComputedStyle(mc) : null;
+      const modalRect = modal.getBoundingClientRect();
+      const mcRect = mc ? mc.getBoundingClientRect() : null;
+
+      // Авто-починка: если контент схлопнулся/уехал — переключаем выравнивание и даём отступ сверху
+      if (mc && mcRect) {
+        const collapsed = mcRect.width < 50 || mcRect.height < 50;
+        const offscreen = mcRect.bottom < 0 || mcRect.top > window.innerHeight;
+        if (collapsed || offscreen) {
+          dbg('Авто-фикс геометрии модалки (collapsed/offscreen)', { collapsed, offscreen, mcRect });
+          modal.style.alignItems = 'flex-start';
+          modal.style.justifyContent = 'center';
+          modal.style.overflowY = 'auto';
+          modal.style.paddingTop = '5vh';
+          mc.style.marginTop = '0';
+          mc.style.marginBottom = '5vh';
+        }
+      }
+
+      dbg('Модалка вставлена', {
+        modalInDom: !!modal.isConnected,
+        modalPosition: modalStyle.position,
+        modalDisplay: modalStyle.display,
+        modalZ: modalStyle.zIndex,
+        modalOpacity: modalStyle.opacity,
+        modalVisibility: modalStyle.visibility,
+        modalPointerEvents: modalStyle.pointerEvents,
+        modalRect,
+        containerInBook: !!container.closest('.book-container'),
+        containerRect: container.getBoundingClientRect(),
+        contentDisplay: mcStyle ? mcStyle.display : null,
+        contentOpacity: mcStyle ? mcStyle.opacity : null,
+        contentVisibility: mcStyle ? mcStyle.visibility : null,
+        contentPointerEvents: mcStyle ? mcStyle.pointerEvents : null,
+        contentRect: mcRect,
+        bodyTextLen: (body && body.textContent) ? body.textContent.trim().length : 0
+      });
+    }
+
+    function closeModal(btn) {
+      const modal = btn.closest('.modal');
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.remove();
+        document.body.style.overflow = '';
+      }, 300);
+    }
+
+    function copyCode(btn) {
+      const codeBlock = btn.parentElement;
+      const text = codeBlock.textContent.replace('Копировать', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => {
+          btn.textContent = 'Копировать';
+        }, 2000);
+      });
+    }
+
+    // Плавная прокрутка к якорям
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Инициализация кнопок (делегирование — работает для всех кнопок всегда)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest && e.target.closest('.show-code-btn[data-part]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const partId = btn.getAttribute('data-part');
+      dbg('Клик по кнопке', { partId, text: btn.textContent.trim() });
+      if (partId) openModal(partId);
+    }, true);
+
+    document.addEventListener('touchend', (e) => {
+      const btn = e.target.closest && e.target.closest('.show-code-btn[data-part]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const partId = btn.getAttribute('data-part');
+      dbg('touchend по кнопке', { partId, text: btn.textContent.trim() });
+      if (partId) openModal(partId);
+    }, { passive: false, capture: true });
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.active');
+        if (modal) {
+          closeModal(modal.querySelector('.modal-close'));
+        }
+      }
+    });
+
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.copyCode = copyCode;
+  </script>
+</body>
+</html>
+
