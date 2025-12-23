@@ -111,14 +111,15 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
     }
   };
 
-  const handleDownload = (versionId: string, fileName: string) => {
-    const downloadUrl = `${process.env.REACT_APP_API_URL}/templates/${template._id}/versions/${versionId}/download`;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = (version: TemplateVersion) => {
+    // Используем URL файла версии напрямую, как в карточке шаблона
+    if (version.file?.url) {
+      window.open(version.file.url, '_blank');
+    } else {
+      // Fallback: используем API endpoint для скачивания
+      const downloadUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3000/api'}/templates/${template._id}/versions/${version._id}/download`;
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   const handleCompare = (version: TemplateVersion) => {
@@ -305,12 +306,21 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {version.version !== template.metadata.version && (
+                            <Tooltip title="Восстановить">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRestoreClick(version._id)}
+                                color="warning"
+                              >
+                                <RestoreIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip title="Скачать">
                             <IconButton
                               size="small"
-                              onClick={() =>
-                                handleDownload(version._id, version.file.originalName)
-                              }
+                              onClick={() => handleDownload(version)}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>
@@ -323,17 +333,6 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                               <CompareIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {version.version !== template.metadata.version && (
-                            <Tooltip title="Восстановить">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleRestoreClick(version._id)}
-                                color="warning"
-                              >
-                                <RestoreIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
                           <IconButton
                             size="small"
                             onClick={(e) => handleMenuOpen(e, version)}
@@ -392,8 +391,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() =>
-            selectedVersion &&
-            handleDownload(selectedVersion._id, selectedVersion.file.originalName)
+            selectedVersion && handleDownload(selectedVersion)
           }
         >
           <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
