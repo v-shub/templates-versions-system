@@ -85,6 +85,7 @@ interface ComparisonResult {
     fileContent: {
       contentChanged: boolean;
       isTextFile: boolean;
+      fileType: 'text' | 'office' | 'pdf' | null;
       diff: DiffPart[] | null;
       error: string | null;
     };
@@ -513,9 +514,47 @@ const VersionComparisonDialog: React.FC<VersionComparisonDialogProps> = ({
                     </Alert>
                   ) : (
                     <Box>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Изменения в содержимом файла (зеленый = добавлено, красный = удалено):
-                      </Typography>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Изменения в содержимом файла (зеленый = добавлено, красный = удалено):
+                        </Typography>
+                        {comparison.differences.fileContent.fileType === 'office' && (
+                          <Chip 
+                            label="Office документ (DOCX/XLSX/PPTX)" 
+                            size="small" 
+                            color="primary" 
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                        {comparison.differences.fileContent.fileType === 'pdf' && (
+                          <Chip 
+                            label="PDF документ" 
+                            size="small" 
+                            color="primary" 
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                        {comparison.differences.fileContent.fileType === 'text' && (
+                          <Chip 
+                            label="Текстовый файл" 
+                            size="small" 
+                            color="primary" 
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                        {comparison.differences.fileContent.fileType === 'office' && (
+                          <Alert severity="info" sx={{ mt: 1 }}>
+                            Сравнение Office документов: показывается извлеченный текст. 
+                            Форматирование и структура могут быть упрощены.
+                          </Alert>
+                        )}
+                        {comparison.differences.fileContent.fileType === 'pdf' && (
+                          <Alert severity="info" sx={{ mt: 1 }}>
+                            Сравнение PDF: показывается извлеченный текст. 
+                            Форматирование, изображения и таблицы не отображаются.
+                          </Alert>
+                        )}
+                      </Box>
                       {renderDiffContent(comparison.differences.fileContent.diff)}
                     </Box>
                   )}

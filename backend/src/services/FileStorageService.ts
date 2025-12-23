@@ -162,6 +162,33 @@ export class FileStorageService {
     return `${timestamp}-${randomString}${extension}`;
   }
 
+  // Метод для проверки существования файла
+  async fileExists(storedName: string): Promise<boolean> {
+    try {
+      if (this.config.type === 'local' && this.config.local) {
+        const filePath = path.join(this.config.local.uploadPath, storedName);
+        return fs.existsSync(filePath);
+      } else if (this.config.type === 's3' && this.s3 && this.config.s3) {
+        try {
+          await this.s3.headObject({
+            Bucket: this.config.s3.bucket,
+            Key: storedName
+          }).promise();
+          return true;
+        } catch (error: any) {
+          if (error.code === 'NotFound' || error.statusCode === 404) {
+            return false;
+          }
+          throw error;
+        }
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
   // Метод для чтения файла
   async readFile(storedName: string): Promise<Buffer> {
     if (this.config.type === 'local' && this.config.local) {
@@ -186,5 +213,67 @@ export class FileStorageService {
   async readTextFile(storedName: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
     const buffer = await this.readFile(storedName);
     return buffer.toString(encoding);
+  }
+
+  // Метод для копирования файла (создает новую копию с новым именем)
+  async copyFile(
+    sourceStoredName: string,
+    originalName: string,
+    mimeType: string
+  ): Promise<{
+    originalName: string;
+    storedName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+    checksum: string;
+  }> {
+    // Читаем исходный файл
+    const fileBuffer = await this.readFile(sourceStoredName);
+    const checksum = this.calculateChecksum(fileBuffer);
+    const newStoredName = this.generateFileName(originalName);
+
+    if (this.config.type === 'local' && this.config.local) {
+      const uploadPath = this.config.local.uploadPath;
+      
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const filePath = path.join(uploadPath, newStoredName);
+      fs.writeFileSync(filePath, fileBuffer);
+
+      return {
+        originalName,
+        storedName: newStoredName,
+        mimeType,
+        size: fileBuffer.length,
+        url: `${this.config.local.baseUrl}/files/${newStoredName}`,
+        checksum
+      };
+    } else if (this.config.type === 's3' && this.s3 && this.config.s3) {
+      const params = {
+        Bucket: this.config.s3.bucket,
+        Key: newStoredName,
+        Body: fileBuffer,
+        ContentType: mimeType,
+        Metadata: {
+          checksum
+        }
+      };
+
+      const result = await this.s3.upload(params).promise();
+
+      return {
+        originalName,
+        storedName: newStoredName,
+        mimeType,
+        size: fileBuffer.length,
+        url: result.Location,
+        checksum
+      };
+    } else {
+      throw new Error('Storage configuration is invalid');
+    }
   }
 }

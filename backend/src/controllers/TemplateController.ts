@@ -4,6 +4,8 @@ import TemplateVersion from '../models/TemplateVersion';
 import { FileStorageService } from '../services/FileStorageService';
 import { ElasticsearchService } from '../services/ElasticsearchService';
 import { RedisService } from '../services/RedisService';
+import { OfficeDocumentService } from '../services/OfficeDocumentService';
+import { PdfService } from '../services/PdfService';
 import fs from 'fs';
 import path from 'path';
 import { diffLines, diffWords, diffChars } from 'diff';
@@ -12,6 +14,8 @@ export class TemplateController {
   private fileStorage: FileStorageService;
   private elasticsearch: ElasticsearchService;
   private redis: RedisService;
+  private officeService: OfficeDocumentService;
+  private pdfService: PdfService;
 
   constructor() {
     this.fileStorage = new FileStorageService({
@@ -37,6 +41,8 @@ export class TemplateController {
 
     this.elasticsearch = new ElasticsearchService();
     this.redis = new RedisService();
+    this.officeService = new OfficeDocumentService();
+    this.pdfService = new PdfService();
   }
 
   createTemplate = async (req: Request, res: Response) => {
@@ -89,12 +95,32 @@ export class TemplateController {
     const template = new Template(templateData);
       await template.save();
 
-      // Создаем первую версию
+      // Создаем первую версию - копируем файл для версии
+      let versionFileData;
+      try {
+        versionFileData = await this.fileStorage.copyFile(
+          templateFileData.storedName,
+          templateFileData.originalName,
+          templateFileData.mimeType
+        );
+      } catch (error: any) {
+        // Если не удалось скопировать (маловероятно, т.к. файл только что загружен), используем оригинальные данные
+        console.warn(`Could not copy file for initial version: ${error.message}`);
+        versionFileData = templateFileData;
+      }
+      
       const templateVersion = new TemplateVersion({
         templateId: template._id,
         version: 1,
         changes: 'Initial version',
-        file: templateFileData,
+        file: {
+          originalName: versionFileData.originalName,
+          storedName: versionFileData.storedName,
+          mimeType: versionFileData.mimeType,
+          size: versionFileData.size,
+          url: versionFileData.url,
+          checksum: versionFileData.checksum
+        },
         metadata: {
           author: template.metadata.author,
           status: template.metadata.status,
@@ -226,7 +252,16 @@ export class TemplateController {
     // Обработка файла
     if (req.file) {
       shouldCreateVersion = true;
-      await this.fileStorage.deleteFile(template.file.storedName);
+      
+      // Удаляем старый файл шаблона (если существует)
+      try {
+        await this.fileStorage.deleteFile(template.file.storedName);
+      } catch (error: any) {
+        console.warn(`Could not delete old file: ${error.message}`);
+        // Продолжаем даже если файл не удалось удалить
+      }
+      
+      // Загружаем новый файл
       newFileData = await this.fileStorage.uploadFile(req.file);
       
       updateFields.file = {
@@ -238,7 +273,8 @@ export class TemplateController {
         checksum: newFileData.checksum
       };
       
-      newVersion += 1;
+      // Версия будет создана с новым номером версии (состояние ПОСЛЕ обновления)
+      newVersion = template.metadata.version + 1;
       updateFields['metadata.version'] = newVersion;
       updateFields['metadata.lastModified'] = new Date();
       updateFields['metadata.checksum'] = newFileData.checksum;
@@ -278,25 +314,100 @@ export class TemplateController {
 
     // создание версии
     if (shouldCreateVersion) {
-      const versionFileData = newFileData ? {
-        originalName: newFileData.originalName,
-        storedName: newFileData.storedName,
-        mimeType: newFileData.mimeType,
-        size: newFileData.size,
-        url: newFileData.url,
-        checksum: newFileData.checksum
-      } : {
-        originalName: template.file.originalName,
-        storedName: template.file.storedName,
-        mimeType: template.file.mimeType,
-        size: template.file.size,
-        url: template.file.url,
-        checksum: template.file.checksum || 'fallback-checksum'
-      };
+      let versionFileData;
+      let versionNumber = newVersion;
+      
+      if (newFileData) {
+        // Если загружен новый файл, версия создается с НОВЫМ файлом (текущее состояние)
+        // Копируем новый файл для версии, чтобы версия имела свою независимую копию
+        try {
+          const fileExists = await this.fileStorage.fileExists(newFileData.storedName);
+          if (fileExists) {
+            const copiedFileData = await this.fileStorage.copyFile(
+              newFileData.storedName,
+              newFileData.originalName,
+              newFileData.mimeType
+            );
+            versionFileData = {
+              originalName: copiedFileData.originalName,
+              storedName: copiedFileData.storedName,
+              mimeType: copiedFileData.mimeType,
+              size: copiedFileData.size,
+              url: copiedFileData.url,
+              checksum: copiedFileData.checksum
+            };
+          } else {
+            // Файл не существует (маловероятно, т.к. только что загружен), используем метаданные
+            versionFileData = {
+              originalName: newFileData.originalName,
+              storedName: newFileData.storedName,
+              mimeType: newFileData.mimeType,
+              size: newFileData.size,
+              url: newFileData.url,
+              checksum: newFileData.checksum
+            };
+          }
+        } catch (error: any) {
+          // Если не удалось скопировать файл, используем метаданные нового файла
+          console.warn(`Could not copy new file for version: ${error.message}`);
+          versionFileData = {
+            originalName: newFileData.originalName,
+            storedName: newFileData.storedName,
+            mimeType: newFileData.mimeType,
+            size: newFileData.size,
+            url: newFileData.url,
+            checksum: newFileData.checksum
+          };
+        }
+      } else {
+        // Если новый файл не загружен, версия получает новый номер
+        // Пытаемся скопировать существующий файл, чтобы версия имела свою независимую копию
+        // Если файл не существует, используем метаданные файла из шаблона
+        try {
+          const fileExists = await this.fileStorage.fileExists(template.file.storedName);
+          if (fileExists) {
+            const copiedFileData = await this.fileStorage.copyFile(
+              template.file.storedName,
+              template.file.originalName,
+              template.file.mimeType
+            );
+            versionFileData = {
+              originalName: copiedFileData.originalName,
+              storedName: copiedFileData.storedName,
+              mimeType: copiedFileData.mimeType,
+              size: copiedFileData.size,
+              url: copiedFileData.url,
+              checksum: copiedFileData.checksum
+            };
+          } else {
+            // Файл не существует, используем метаданные из шаблона
+            console.warn(`File ${template.file.storedName} does not exist, using metadata only for version`);
+            versionFileData = {
+              originalName: template.file.originalName,
+              storedName: template.file.storedName,
+              mimeType: template.file.mimeType,
+              size: template.file.size,
+              url: template.file.url,
+              checksum: template.file.checksum || 'missing-file'
+            };
+          }
+        } catch (error: any) {
+          // Если не удалось скопировать файл, используем метаданные из шаблона
+          console.warn(`Could not copy file for version: ${error.message}`);
+          versionFileData = {
+            originalName: template.file.originalName,
+            storedName: template.file.storedName,
+            mimeType: template.file.mimeType,
+            size: template.file.size,
+            url: template.file.url,
+            checksum: template.file.checksum || 'missing-file'
+          };
+        }
+      }
 
       const templateVersion = new TemplateVersion({
         templateId: template._id,
-        version: newVersion,
+        version: versionNumber,
         changes: versionChanges,
         file: versionFileData,
         metadata: {
@@ -356,40 +467,81 @@ export class TemplateController {
     // 4. Увеличиваем версию
     const newVersionNumber = currentTemplate.metadata.version + 1;
     
-    // 5. ВАЖНО: Полностью обновляем шаблон данными из версии
-    // (если в TemplateVersion хранятся полные данные шаблона)
-    
-    const updateData: any = {
-      // Обновляем файл из восстанавливаемой версии
-      file: {
+    // 5. Пытаемся скопировать файл из восстанавливаемой версии
+    // Если файл не существует, используем метаданные из версии
+    let copiedFileData;
+    try {
+      const fileExists = await this.fileStorage.fileExists(versionToRestore.file.storedName);
+      if (fileExists) {
+        copiedFileData = await this.fileStorage.copyFile(
+          versionToRestore.file.storedName,
+          versionToRestore.file.originalName,
+          versionToRestore.file.mimeType
+        );
+      } else {
+        // Файл не существует, используем метаданные из версии
+        console.warn(`File ${versionToRestore.file.storedName} does not exist, using metadata only`);
+        copiedFileData = {
+          originalName: versionToRestore.file.originalName,
+          storedName: versionToRestore.file.storedName,
+          mimeType: versionToRestore.file.mimeType,
+          size: versionToRestore.file.size,
+          url: versionToRestore.file.url,
+          checksum: versionToRestore.file.checksum || 'missing-file'
+        };
+      }
+    } catch (error: any) {
+      // Если не удалось скопировать, используем метаданные из версии
+      console.warn(`Could not copy file for restore: ${error.message}`);
+      copiedFileData = {
         originalName: versionToRestore.file.originalName,
         storedName: versionToRestore.file.storedName,
         mimeType: versionToRestore.file.mimeType,
         size: versionToRestore.file.size,
         url: versionToRestore.file.url,
-        checksum: versionToRestore.file.checksum
+        checksum: versionToRestore.file.checksum || 'missing-file'
+      };
+    }
+    
+    // 6. ВАЖНО: Полностью обновляем шаблон данными из версии
+    const updateData: any = {
+      // Обновляем файл из восстанавливаемой версии (используем скопированный файл или метаданные)
+      file: {
+        originalName: copiedFileData.originalName,
+        storedName: copiedFileData.storedName,
+        mimeType: copiedFileData.mimeType,
+        size: copiedFileData.size,
+        url: copiedFileData.url,
+        checksum: copiedFileData.checksum
       },
       // Обновляем метаданные
       'metadata.version': newVersionNumber,
       'metadata.lastModified': new Date(),
-      'metadata.checksum': versionToRestore.file.checksum,
+      'metadata.checksum': copiedFileData.checksum,
       // Также обновляем статус если он был в версии
       'metadata.status': versionToRestore.metadata?.status || currentTemplate.metadata.status
     };
 
-    // . Обновляем шаблон
+    // 7. Обновляем шаблон
     const updatedTemplate = await Template.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
 
-    // 7. Создаем запись о восстановлении как новую версию
+    // 8. Создаем запись о восстановлении как новую версию (используем ту же копию файла)
     const restorationVersion = new TemplateVersion({
       templateId: currentTemplate._id,
       version: newVersionNumber,
       changes: `Restored from version ${versionToRestore.version}: ${versionToRestore.changes}`,
-      file: versionToRestore.file,
+      file: {
+        originalName: copiedFileData.originalName,
+        storedName: copiedFileData.storedName,
+        mimeType: copiedFileData.mimeType,
+        size: copiedFileData.size,
+        url: copiedFileData.url,
+        checksum: copiedFileData.checksum
+      },
       metadata: {
         author: req.body.author || currentTemplate.metadata.author,
         status: versionToRestore.metadata?.status || currentTemplate.metadata.status,
@@ -587,11 +739,54 @@ restoreVersion = async (req: Request, res: Response) => {
     // Создаем новую версию на основе восстановленной
     const newVersionNumber = template.metadata.version + 1;
     
+    // Пытаемся скопировать файл для новой версии
+    // Если файл не существует, используем метаданные из версии
+    let copiedFileData;
+    try {
+      const fileExists = await this.fileStorage.fileExists(version.file.storedName);
+      if (fileExists) {
+        copiedFileData = await this.fileStorage.copyFile(
+          version.file.storedName,
+          version.file.originalName,
+          version.file.mimeType
+        );
+      } else {
+        // Файл не существует, используем метаданные из версии
+        console.warn(`File ${version.file.storedName} does not exist, using metadata only`);
+        copiedFileData = {
+          originalName: version.file.originalName,
+          storedName: version.file.storedName,
+          mimeType: version.file.mimeType,
+          size: version.file.size,
+          url: version.file.url,
+          checksum: version.file.checksum || 'missing-file'
+        };
+      }
+    } catch (error: any) {
+      // Если не удалось скопировать, используем метаданные из версии
+      console.warn(`Could not copy file for restore: ${error.message}`);
+      copiedFileData = {
+        originalName: version.file.originalName,
+        storedName: version.file.storedName,
+        mimeType: version.file.mimeType,
+        size: version.file.size,
+        url: version.file.url,
+        checksum: version.file.checksum || 'missing-file'
+      };
+    }
+    
     const newVersion = new TemplateVersion({
       templateId: template._id,
       version: newVersionNumber,
       changes: `Restored from version ${version.version}`,
-      file: version.file,
+      file: {
+        originalName: copiedFileData.originalName,
+        storedName: copiedFileData.storedName,
+        mimeType: copiedFileData.mimeType,
+        size: copiedFileData.size,
+        url: copiedFileData.url,
+        checksum: copiedFileData.checksum
+      },
       metadata: {
         author: req.body.author || template.metadata.author,
         status: template.metadata.status,
@@ -600,14 +795,22 @@ restoreVersion = async (req: Request, res: Response) => {
     });
     await newVersion.save();
 
-    // Обновляем основной шаблон
+    // Обновляем основной шаблон - используем ту же копию файла или метаданные
     const updatedTemplate = await Template.findByIdAndUpdate(
       templateId,
       {
         $set: {
-          'file': version.file,
+          'file': {
+            originalName: copiedFileData.originalName,
+            storedName: copiedFileData.storedName,
+            mimeType: copiedFileData.mimeType,
+            size: copiedFileData.size,
+            url: copiedFileData.url,
+            checksum: copiedFileData.checksum
+          },
           'metadata.version': newVersionNumber,
-          'metadata.lastModified': new Date()
+          'metadata.lastModified': new Date(),
+          'metadata.checksum': copiedFileData.checksum
         }
       },
       { new: true }
@@ -1128,6 +1331,7 @@ getTemplateStats = async (req: Request, res: Response) => {
       const fileContentComparison: any = {
         contentChanged: false,
         isTextFile: false,
+        fileType: null, // 'text', 'office', 'pdf', или null для бинарных
         diff: null,
         error: null
       };
@@ -1138,6 +1342,26 @@ getTemplateStats = async (req: Request, res: Response) => {
         fileContentComparison.contentChanged = fileContentChanged;
 
         if (fileContentChanged) {
+          // Определяем тип файла
+          const mimeType1 = version1.file.mimeType.toLowerCase();
+          const mimeType2 = version2.file.mimeType.toLowerCase();
+          const fileName1 = version1.file.originalName.toLowerCase();
+          const fileName2 = version2.file.originalName.toLowerCase();
+
+          // Проверяем Office документы
+          const isOfficeDoc = 
+            mimeType1.includes('wordprocessingml') || mimeType1.includes('spreadsheetml') || 
+            mimeType1.includes('presentationml') ||
+            mimeType2.includes('wordprocessingml') || mimeType2.includes('spreadsheetml') || 
+            mimeType2.includes('presentationml') ||
+            fileName1.endsWith('.docx') || fileName1.endsWith('.xlsx') || fileName1.endsWith('.pptx') ||
+            fileName2.endsWith('.docx') || fileName2.endsWith('.xlsx') || fileName2.endsWith('.pptx');
+
+          // Проверяем PDF
+          const isPdf = 
+            mimeType1.includes('pdf') || mimeType2.includes('pdf') ||
+            fileName1.endsWith('.pdf') || fileName2.endsWith('.pdf');
+
           // Определяем, является ли файл текстовым
           const textMimeTypes = [
             'text/plain',
@@ -1154,7 +1378,7 @@ getTemplateStats = async (req: Request, res: Response) => {
             'application/yaml'
           ];
 
-          const textExtensions = /\.(txt|md|json|xml|html|htm|css|js|ts|jsx|tsx|yaml|yml|csv|log|ini|conf|config|sh|bat|cmd|ps1)$/i;
+          const textExtensions = /\.(txt|md|json|xml|html|htm|css|js|ts|jsx|tsx|yaml|yml|csv|log|ini|conf|config|sh|bat|cmd|ps1|svg|rtf)$/i;
 
           const isTextFile = 
             textMimeTypes.includes(version1.file.mimeType) ||
@@ -1164,13 +1388,38 @@ getTemplateStats = async (req: Request, res: Response) => {
             textExtensions.test(version1.file.originalName) ||
             textExtensions.test(version2.file.originalName);
 
-          fileContentComparison.isTextFile = isTextFile;
+          fileContentComparison.isTextFile = isTextFile || isOfficeDoc || isPdf;
 
-          if (isTextFile) {
+          if (isOfficeDoc || isPdf || isTextFile) {
             try {
-              // Читаем содержимое файлов
-              const content1 = await this.fileStorage.readTextFile(version1.file.storedName);
-              const content2 = await this.fileStorage.readTextFile(version2.file.storedName);
+              let content1: string;
+              let content2: string;
+
+              // Читаем файлы как Buffer для Office и PDF
+              const buffer1 = await this.fileStorage.readFile(version1.file.storedName);
+              const buffer2 = await this.fileStorage.readFile(version2.file.storedName);
+
+              if (isOfficeDoc) {
+                // Извлекаем текст из Office документов
+                content1 = await this.officeService.extractTextFromOfficeDocument(
+                  buffer1, 
+                  version1.file.mimeType, 
+                  version1.file.originalName
+                );
+                content2 = await this.officeService.extractTextFromOfficeDocument(
+                  buffer2, 
+                  version2.file.mimeType, 
+                  version2.file.originalName
+                );
+              } else if (isPdf) {
+                // Извлекаем текст из PDF
+                content1 = await this.pdfService.extractTextFromPdf(buffer1);
+                content2 = await this.pdfService.extractTextFromPdf(buffer2);
+              } else {
+                // Обычные текстовые файлы
+                content1 = buffer1.toString('utf8');
+                content2 = buffer2.toString('utf8');
+              }
 
               // Создаем diff по строкам
               const diff = diffLines(content1, content2);
@@ -1181,10 +1430,19 @@ getTemplateStats = async (req: Request, res: Response) => {
                 added: part.added || false,
                 removed: part.removed || false
               }));
+
+              // Добавляем информацию о типе файла
+              if (isOfficeDoc) {
+                fileContentComparison.fileType = 'office';
+              } else if (isPdf) {
+                fileContentComparison.fileType = 'pdf';
+              } else {
+                fileContentComparison.fileType = 'text';
+              }
             } catch (readError: any) {
-              // Если не удалось прочитать как текст, пробуем другие кодировки или считаем бинарным
+              // Если не удалось прочитать, считаем бинарным
               fileContentComparison.isTextFile = false;
-              fileContentComparison.error = 'Could not read file as text';
+              fileContentComparison.error = `Could not extract text: ${readError.message}`;
             }
           }
         }
