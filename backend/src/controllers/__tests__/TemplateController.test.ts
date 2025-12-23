@@ -612,6 +612,352 @@ describe('TemplateController', () => {
     });
   });
 
+  describe('compareVersions', () => {
+    let templateId: string;
+    let version1Id: string;
+    let version2Id: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Template to Compare',
+        description: 'Template for comparison',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'template.pdf',
+          storedName: 'template.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/template.pdf',
+          checksum: 'template-checksum'
+        },
+        metadata: {
+          author: 'Test Author',
+          version: 2,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'template-checksum'
+        }
+      });
+      templateId = template.id.toString();
+
+      // Создаем первую версию
+      const version1 = await TemplateVersion.create({
+        templateId: template._id,
+        version: 1,
+        changes: 'Initial version',
+        file: {
+          originalName: 'v1.pdf',
+          storedName: 'v1.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/v1.pdf',
+          checksum: 'checksum1'
+        },
+        metadata: {
+          author: 'Author 1',
+          status: 'draft',
+          created: new Date('2024-01-01')
+        }
+      });
+      version1Id = version1.id.toString();
+
+      // Создаем вторую версию с изменениями
+      const version2 = await TemplateVersion.create({
+        templateId: template._id,
+        version: 2,
+        changes: 'Updated version with changes',
+        file: {
+          originalName: 'v2.pdf',
+          storedName: 'v2.pdf',
+          mimeType: 'application/pdf',
+          size: 2048,
+          url: 'http://test.com/v2.pdf',
+          checksum: 'checksum2'
+        },
+        metadata: {
+          author: 'Author 2',
+          status: 'approved',
+          created: new Date('2024-01-02')
+        }
+      });
+      version2Id = version2.id.toString();
+    });
+
+    it('should compare two versions successfully', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id,
+          version2Id
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const comparison = mockJson.mock.calls[0][0];
+      
+      expect(comparison.templateId).toBe(templateId);
+      expect(comparison.templateName).toBe('Template to Compare');
+      expect(comparison.version1.version).toBe(1);
+      expect(comparison.version2.version).toBe(2);
+      expect(comparison.differences.summary.hasChanges).toBe(true);
+      expect(comparison.differences.metadata.version).toBeDefined();
+      expect(comparison.differences.metadata.changes).toBeDefined();
+      expect(comparison.differences.metadata.author).toBeDefined();
+      expect(comparison.differences.metadata.status).toBeDefined();
+      expect(comparison.differences.file.size).toBeDefined();
+      expect(comparison.differences.file.checksum.contentChanged).toBe(true);
+    });
+
+    it('should return 404 if version1 not found', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id: new mongoose.Types.ObjectId().toString(),
+          version2Id
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Version 1 not found' });
+    });
+
+    it('should return 404 if version2 not found', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id,
+          version2Id: new mongoose.Types.ObjectId().toString()
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Version 2 not found' });
+    });
+
+    it('should return 400 if versions belong to different templates', async () => {
+      // Создаем другой шаблон и версию
+      const otherTemplate = await Template.create({
+        name: 'Other Template',
+        description: 'Other',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'other.pdf',
+          storedName: 'other.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/other.pdf',
+          checksum: 'other'
+        },
+        metadata: {
+          author: 'Other',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'other'
+        }
+      });
+
+      const otherVersion = await TemplateVersion.create({
+        templateId: otherTemplate._id,
+        version: 1,
+        changes: 'Other version',
+        file: {
+          originalName: 'other.pdf',
+          storedName: 'other.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/other.pdf',
+          checksum: 'other'
+        },
+        metadata: {
+          author: 'Other',
+          status: 'draft',
+          created: new Date()
+        }
+      });
+
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id,
+          version2Id: otherVersion.id.toString()
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ 
+        error: 'Versions must belong to the same template' 
+      });
+    });
+
+    it('should return 400 if comparing version with itself', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id,
+          version2Id: version1Id
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ 
+        error: 'Cannot compare a version with itself' 
+      });
+    });
+
+    it('should return 400 if version1Id is missing', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version2Id
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ 
+        error: 'Both version1Id and version2Id are required' 
+      });
+    });
+
+    it('should return 400 if version2Id is missing', async () => {
+      mockRequest = {
+        params: { 
+          id: templateId,
+          version1Id
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ 
+        error: 'Both version1Id and version2Id are required' 
+      });
+    });
+
+    it('should detect no file content changes when checksums are identical', async () => {
+      // Создаем новый шаблон для этого теста
+      const template3 = await Template.create({
+        name: 'Template 3',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'template3.pdf',
+          storedName: 'template3.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/template3.pdf',
+          checksum: 'template3'
+        },
+        metadata: {
+          author: 'Test',
+          version: 2,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'template3'
+        }
+      });
+
+      // Создаем две версии с одинаковым checksum (файл не изменился)
+      const version3 = await TemplateVersion.create({
+        templateId: template3._id,
+        version: 1,
+        changes: 'Initial version',
+        file: {
+          originalName: 'v1.pdf',
+          storedName: 'v1.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/v1.pdf',
+          checksum: 'same-checksum'
+        },
+        metadata: {
+          author: 'Author 1',
+          status: 'draft',
+          created: new Date('2024-01-01')
+        }
+      });
+
+      const version4 = await TemplateVersion.create({
+        templateId: template3._id,
+        version: 2,
+        changes: 'Updated description but same file',
+        file: {
+          originalName: 'v1.pdf',
+          storedName: 'v1.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/v1.pdf',
+          checksum: 'same-checksum' // Тот же checksum - файл не изменился
+        },
+        metadata: {
+          author: 'Author 1',
+          status: 'draft',
+          created: new Date('2024-01-02')
+        }
+      });
+
+      mockRequest = {
+        params: { 
+          id: template3.id.toString(),
+          version1Id: version3.id.toString(),
+          version2Id: version4.id.toString()
+        }
+      };
+
+      await controller.compareVersions(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      const comparison = mockJson.mock.calls[0][0];
+      // Файл не изменился (checksum одинаковый)
+      expect(comparison.differences.file.checksum.contentChanged).toBe(false);
+      // Но метаданные изменились
+      expect(comparison.differences.metadata.changes).toBeDefined();
+      expect(comparison.differences.metadata.version).toBeDefined();
+    });
+  });
+
   describe('getTemplateStats', () => {
     beforeEach(async () => {
       // Создаем тестовые данные для статистики

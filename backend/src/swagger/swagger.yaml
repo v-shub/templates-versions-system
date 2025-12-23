@@ -560,6 +560,57 @@ paths:
         '415':
           description: Тип файла не поддерживается для предпросмотра
 
+  /templates/{id}/versions/compare/{version1Id}/{version2Id}:
+    get:
+      tags:
+        - Versions
+      summary: Сравнить две версии шаблона
+      description: Сравнивает две версии шаблона и возвращает детальный отчет об изменениях
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID шаблона
+        - name: version1Id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID первой версии для сравнения
+        - name: version2Id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID второй версии для сравнения
+      responses:
+        '200':
+          description: Результат сравнения версий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templateId:
+                    type: string
+                  templateName:
+                    type: string
+                  version1:
+                    type: object
+                  version2:
+                    type: object
+                  differences:
+                    type: object
+                  comparedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Неверные параметры запроса
+        '404':
+          description: Версия или шаблон не найдены
+
   /templates/{id}/versions:
     get:
       tags:

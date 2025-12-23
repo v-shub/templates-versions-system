@@ -1015,4 +1015,193 @@ getTemplateStats = async (req: Request, res: Response) => {
       res.status(500).json({ error: error.message });
     }
   };
+
+  // Сравнение версий
+  compareVersions = async (req: Request, res: Response) => {
+    try {
+      const { version1Id, version2Id } = req.params;
+
+      if (!version1Id || !version2Id) {
+        return res.status(400).json({ 
+          error: 'Both version1Id and version2Id are required' 
+        });
+      }
+
+      if (version1Id === version2Id) {
+        return res.status(400).json({ 
+          error: 'Cannot compare a version with itself' 
+        });
+      }
+
+      // Получаем обе версии
+      const version1 = await TemplateVersion.findById(version1Id);
+      const version2 = await TemplateVersion.findById(version2Id);
+
+      if (!version1) {
+        return res.status(404).json({ error: 'Version 1 not found' });
+      }
+
+      if (!version2) {
+        return res.status(404).json({ error: 'Version 2 not found' });
+      }
+
+      // Проверяем, что версии принадлежат одному шаблону
+      if (version1.templateId.toString() !== version2.templateId.toString()) {
+        return res.status(400).json({ 
+          error: 'Versions must belong to the same template' 
+        });
+      }
+
+      // Получаем шаблон для дополнительной информации
+      const template = await Template.findById(version1.templateId);
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+
+      // Сравнение метаданных
+      const metadataChanges: any = {};
+      
+      // Сравнение версий
+      if (version1.version !== version2.version) {
+        metadataChanges.version = {
+          old: version1.version,
+          new: version2.version
+        };
+      }
+
+      // Сравнение описания изменений
+      if (version1.changes !== version2.changes) {
+        metadataChanges.changes = {
+          old: version1.changes,
+          new: version2.changes
+        };
+      }
+
+      // Сравнение автора
+      if (version1.metadata.author !== version2.metadata.author) {
+        metadataChanges.author = {
+          old: version1.metadata.author,
+          new: version2.metadata.author
+        };
+      }
+
+      // Сравнение статуса
+      if (version1.metadata.status !== version2.metadata.status) {
+        metadataChanges.status = {
+          old: version1.metadata.status,
+          new: version2.metadata.status
+        };
+      }
+
+      // Сравнение дат создания
+      if (version1.metadata.created.getTime() !== version2.metadata.created.getTime()) {
+        metadataChanges.created = {
+          old: version1.metadata.created,
+          new: version2.metadata.created
+        };
+      }
+
+      // Сравнение файлов
+      const fileChanges: any = {};
+      
+      if (version1.file.originalName !== version2.file.originalName) {
+        fileChanges.originalName = {
+          old: version1.file.originalName,
+          new: version2.file.originalName
+        };
+      }
+
+      if (version1.file.mimeType !== version2.file.mimeType) {
+        fileChanges.mimeType = {
+          old: version1.file.mimeType,
+          new: version2.file.mimeType
+        };
+      }
+
+      if (version1.file.size !== version2.file.size) {
+        fileChanges.size = {
+          old: version1.file.size,
+          new: version2.file.size
+        };
+      }
+
+      // Сравнение checksum (самое важное - показывает, изменился ли файл)
+      const fileContentChanged = version1.file.checksum !== version2.file.checksum;
+      if (fileContentChanged) {
+        fileChanges.checksum = {
+          old: version1.file.checksum,
+          new: version2.file.checksum,
+          contentChanged: true
+        };
+      } else {
+        fileChanges.checksum = {
+          old: version1.file.checksum,
+          new: version2.file.checksum,
+          contentChanged: false
+        };
+      }
+
+      // Подсчет количества изменений
+      const metadataChangesCount = Object.keys(metadataChanges).length;
+      const fileChangesCount = Object.keys(fileChanges).filter(
+        key => key === 'checksum' ? fileChanges[key].contentChanged : true
+      ).length;
+
+      const hasChanges = metadataChangesCount > 0 || fileContentChanged;
+
+      // Формируем результат
+      const comparison = {
+        templateId: version1.templateId.toString(),
+        templateName: template.name,
+        version1: {
+          id: String(version1._id),
+          version: version1.version,
+          changes: version1.changes,
+          author: version1.metadata.author,
+          status: version1.metadata.status,
+          createdAt: version1.metadata.created,
+          file: {
+            originalName: version1.file.originalName,
+            mimeType: version1.file.mimeType,
+            size: version1.file.size,
+            checksum: version1.file.checksum
+          }
+        },
+        version2: {
+          id: String(version2._id),
+          version: version2.version,
+          changes: version2.changes,
+          author: version2.metadata.author,
+          status: version2.metadata.status,
+          createdAt: version2.metadata.created,
+          file: {
+            originalName: version2.file.originalName,
+            mimeType: version2.file.mimeType,
+            size: version2.file.size,
+            checksum: version2.file.checksum
+          }
+        },
+        differences: {
+          metadata: metadataChanges,
+          file: fileChanges,
+          summary: {
+            hasChanges,
+            metadataChangesCount,
+            fileChangesCount,
+            totalChangesCount: metadataChangesCount + (fileContentChanged ? 1 : 0)
+          }
+        },
+        comparedAt: new Date()
+      };
+
+      // Кэшируем результат сравнения на 1 час
+      const cacheKey = `version_compare:${version1Id}:${version2Id}`;
+      await this.redis.set(cacheKey, JSON.stringify(comparison), 3600);
+
+      res.json(comparison);
+    } catch (error: any) {
+      console.error('Compare versions error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  };
 }
