@@ -115,11 +115,13 @@ router.delete('/templates/:id', templateController.deleteTemplate);
 // Файлы
 router.get('/templates/:id/download', templateController.downloadTemplate);
 router.get('/templates/:id/preview', templateController.previewTemplate);
-router.post('/templates/:id/versions', upload.single('file'), templateController.uploadNewVersion);
 
 // Версии
-router.get('/templates/:id/versions', templateController.getTemplateVersions);
+// ВАЖНО: более специфичные маршруты должны быть раньше общих
+router.get('/templates/:id/versions/compare/:version1Id/:version2Id', templateController.compareVersions);
 router.post('/templates/:id/versions/:versionId/restore', templateController.restoreVersion);
+router.post('/templates/:id/versions', upload.single('file'), templateController.uploadNewVersion);
+router.get('/templates/:id/versions', templateController.getTemplateVersions);
 
 // Метаданные
 router.get('/templates/:id/metadata', templateController.getTemplateMetadata);

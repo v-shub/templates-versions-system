@@ -290,6 +290,14 @@ export const templateApi = {
     });
     return response.data;
   },
+
+  // Сравнение версий
+  compareVersions: async (templateId: string, version1Id: string, version2Id: string) => {
+    const response = await apiClient.get(
+      `/templates/${templateId}/versions/compare/${version1Id}/${version2Id}`
+    );
+    return response.data;
+  },
 };
 
 export default apiClient;

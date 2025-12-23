@@ -40,6 +40,7 @@ import {
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { templateApi, Template, TemplateVersion } from '../../services/api';
+import VersionComparisonDialog from './VersionComparisonDialog';
 
 interface TemplateVersionHistoryProps {
   open: boolean;
@@ -58,6 +59,11 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [versionToRestore, setVersionToRestore] = useState<string | null>(null);
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [versionToCompare, setVersionToCompare] = useState<{
+    version1: TemplateVersion;
+    version2: TemplateVersion;
+  } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -111,19 +117,72 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
     }
   };
 
-  const handleDownload = (versionId: string, fileName: string) => {
-    const downloadUrl = `${process.env.REACT_APP_API_URL}/templates/${template._id}/versions/${versionId}/download`;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = (version: TemplateVersion) => {
+    // Используем URL файла версии напрямую, как в карточке шаблона
+    if (version.file?.url) {
+      window.open(version.file.url, '_blank');
+    } else {
+      // Fallback: используем API endpoint для скачивания
+      const downloadUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3000/api'}/templates/${template._id}/versions/${version._id}/download`;
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   const handleCompare = (version: TemplateVersion) => {
-    // Реализация сравнения версий
-    console.log('Compare version:', version);
+    // Находим текущую версию шаблона в списке версий
+    const currentVersion = versionsData?.versions?.find(
+      (v: TemplateVersion) => v.version === template.metadata.version
+    );
+
+    // Если выбранная версия - текущая, сравниваем с предыдущей
+    if (version.version === template.metadata.version) {
+      const previousVersion = versionsData?.versions?.find(
+        (v: TemplateVersion) => v.version === version.version - 1
+      );
+      
+      if (previousVersion) {
+        setVersionToCompare({
+          version1: previousVersion,
+          version2: version,
+        });
+        setCompareDialogOpen(true);
+      } else {
+        // Если нет предыдущей версии, не можем сравнить
+        console.warn('Нет предыдущей версии для сравнения');
+      }
+    } else if (currentVersion) {
+      // Сравниваем выбранную версию с текущей
+      setVersionToCompare({
+        version1: version.version < currentVersion.version ? version : currentVersion,
+        version2: version.version > currentVersion.version ? version : currentVersion,
+      });
+      setCompareDialogOpen(true);
+    } else {
+      // Если текущая версия не найдена в списке, используем выбранную версию как version2
+      // и ищем предыдущую версию как version1
+      const previousVersion = versionsData?.versions?.find(
+        (v: TemplateVersion) => v.version === version.version - 1
+      );
+      
+      if (previousVersion) {
+        setVersionToCompare({
+          version1: previousVersion,
+          version2: version,
+        });
+        setCompareDialogOpen(true);
+      } else {
+        // Если нет предыдущей версии, сравниваем с самой старой версией
+        const oldestVersion = versionsData?.versions?.[versionsData.versions.length - 1];
+        if (oldestVersion && oldestVersion._id !== version._id) {
+          setVersionToCompare({
+            version1: oldestVersion,
+            version2: version,
+          });
+          setCompareDialogOpen(true);
+        }
+      }
+    }
+    handleMenuClose();
   };
 
   const formatFileSize = (bytes: number) => {
@@ -305,12 +364,21 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {version.version !== template.metadata.version && (
+                            <Tooltip title="Восстановить">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRestoreClick(version._id)}
+                                color="warning"
+                              >
+                                <RestoreIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip title="Скачать">
                             <IconButton
                               size="small"
-                              onClick={() =>
-                                handleDownload(version._id, version.file.originalName)
-                              }
+                              onClick={() => handleDownload(version)}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>
@@ -323,17 +391,6 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                               <CompareIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {version.version !== template.metadata.version && (
-                            <Tooltip title="Восстановить">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleRestoreClick(version._id)}
-                                color="warning"
-                              >
-                                <RestoreIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
                           <IconButton
                             size="small"
                             onClick={(e) => handleMenuOpen(e, version)}
@@ -392,8 +449,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() =>
-            selectedVersion &&
-            handleDownload(selectedVersion._id, selectedVersion.file.originalName)
+            selectedVersion && handleDownload(selectedVersion)
           }
         >
           <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
@@ -439,6 +495,20 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Диалог сравнения версий */}
+      {versionToCompare && (
+        <VersionComparisonDialog
+          open={compareDialogOpen}
+          onClose={() => {
+            setCompareDialogOpen(false);
+            setVersionToCompare(null);
+          }}
+          templateId={template._id}
+          version1={versionToCompare.version1}
+          version2={versionToCompare.version2}
+        />
+      )}
     </>
   );
 };
