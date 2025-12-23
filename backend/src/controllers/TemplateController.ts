@@ -6,6 +6,7 @@ import { ElasticsearchService } from '../services/ElasticsearchService';
 import { RedisService } from '../services/RedisService';
 import fs from 'fs';
 import path from 'path';
+import { diffLines, diffWords, diffChars } from 'diff';
 
 export class TemplateController {
   private fileStorage: FileStorageService;
@@ -1101,53 +1102,124 @@ getTemplateStats = async (req: Request, res: Response) => {
         };
       }
 
-      // Сравнение файлов
-      const fileChanges: any = {};
+      // Проверяем, есть ли name и description в версиях (если они хранятся)
+      const version1Any = version1 as any;
+      const version2Any = version2 as any;
+      
+      if (version1Any.name !== undefined && version2Any.name !== undefined) {
+        if (version1Any.name !== version2Any.name) {
+          metadataChanges.name = {
+            old: version1Any.name,
+            new: version2Any.name
+          };
+        }
+      }
+
+      if (version1Any.description !== undefined && version2Any.description !== undefined) {
+        if (version1Any.description !== version2Any.description) {
+          metadataChanges.description = {
+            old: version1Any.description,
+            new: version2Any.description
+          };
+        }
+      }
+
+      // Сравнение содержимого файлов
+      const fileContentComparison: any = {
+        contentChanged: false,
+        isTextFile: false,
+        diff: null,
+        error: null
+      };
+
+      try {
+        // Проверяем, изменилось ли содержимое файла
+        const fileContentChanged = version1.file.checksum !== version2.file.checksum;
+        fileContentComparison.contentChanged = fileContentChanged;
+
+        if (fileContentChanged) {
+          // Определяем, является ли файл текстовым
+          const textMimeTypes = [
+            'text/plain',
+            'text/html',
+            'text/css',
+            'text/javascript',
+            'text/csv',
+            'text/xml',
+            'application/json',
+            'application/xml',
+            'application/javascript',
+            'application/x-javascript',
+            'application/x-yaml',
+            'application/yaml'
+          ];
+
+          const textExtensions = /\.(txt|md|json|xml|html|htm|css|js|ts|jsx|tsx|yaml|yml|csv|log|ini|conf|config|sh|bat|cmd|ps1)$/i;
+
+          const isTextFile = 
+            textMimeTypes.includes(version1.file.mimeType) ||
+            textMimeTypes.includes(version2.file.mimeType) ||
+            version1.file.mimeType.startsWith('text/') ||
+            version2.file.mimeType.startsWith('text/') ||
+            textExtensions.test(version1.file.originalName) ||
+            textExtensions.test(version2.file.originalName);
+
+          fileContentComparison.isTextFile = isTextFile;
+
+          if (isTextFile) {
+            try {
+              // Читаем содержимое файлов
+              const content1 = await this.fileStorage.readTextFile(version1.file.storedName);
+              const content2 = await this.fileStorage.readTextFile(version2.file.storedName);
+
+              // Создаем diff по строкам
+              const diff = diffLines(content1, content2);
+              
+              // Форматируем diff для фронтенда
+              fileContentComparison.diff = diff.map((part: any) => ({
+                value: part.value,
+                added: part.added || false,
+                removed: part.removed || false
+              }));
+            } catch (readError: any) {
+              // Если не удалось прочитать как текст, пробуем другие кодировки или считаем бинарным
+              fileContentComparison.isTextFile = false;
+              fileContentComparison.error = 'Could not read file as text';
+            }
+          }
+        }
+      } catch (error: any) {
+        fileContentComparison.error = error.message;
+      }
+
+      // Сравнение метаданных файлов
+      const fileMetadataChanges: any = {};
       
       if (version1.file.originalName !== version2.file.originalName) {
-        fileChanges.originalName = {
+        fileMetadataChanges.originalName = {
           old: version1.file.originalName,
           new: version2.file.originalName
         };
       }
 
       if (version1.file.mimeType !== version2.file.mimeType) {
-        fileChanges.mimeType = {
+        fileMetadataChanges.mimeType = {
           old: version1.file.mimeType,
           new: version2.file.mimeType
         };
       }
 
       if (version1.file.size !== version2.file.size) {
-        fileChanges.size = {
+        fileMetadataChanges.size = {
           old: version1.file.size,
           new: version2.file.size
         };
       }
 
-      // Сравнение checksum (самое важное - показывает, изменился ли файл)
-      const fileContentChanged = version1.file.checksum !== version2.file.checksum;
-      if (fileContentChanged) {
-        fileChanges.checksum = {
-          old: version1.file.checksum,
-          new: version2.file.checksum,
-          contentChanged: true
-        };
-      } else {
-        fileChanges.checksum = {
-          old: version1.file.checksum,
-          new: version2.file.checksum,
-          contentChanged: false
-        };
-      }
-
       // Подсчет количества изменений
       const metadataChangesCount = Object.keys(metadataChanges).length;
-      const fileChangesCount = Object.keys(fileChanges).filter(
-        key => key === 'checksum' ? fileChanges[key].contentChanged : true
-      ).length;
-
-      const hasChanges = metadataChangesCount > 0 || fileContentChanged;
+      const fileMetadataChangesCount = Object.keys(fileMetadataChanges).length;
+      const hasChanges = metadataChangesCount > 0 || fileContentComparison.contentChanged || fileMetadataChangesCount > 0;
 
       // Формируем результат
       const comparison = {
@@ -1183,12 +1255,14 @@ getTemplateStats = async (req: Request, res: Response) => {
         },
         differences: {
           metadata: metadataChanges,
-          file: fileChanges,
+          fileMetadata: fileMetadataChanges,
+          fileContent: fileContentComparison,
           summary: {
             hasChanges,
             metadataChangesCount,
-            fileChangesCount,
-            totalChangesCount: metadataChangesCount + (fileContentChanged ? 1 : 0)
+            fileMetadataChangesCount,
+            fileContentChanged: fileContentComparison.contentChanged,
+            totalChangesCount: metadataChangesCount + fileMetadataChangesCount + (fileContentComparison.contentChanged ? 1 : 0)
           }
         },
         comparedAt: new Date()

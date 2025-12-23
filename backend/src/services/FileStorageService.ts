@@ -161,4 +161,30 @@ export class FileStorageService {
     const extension = path.extname(originalName);
     return `${timestamp}-${randomString}${extension}`;
   }
+
+  // Метод для чтения файла
+  async readFile(storedName: string): Promise<Buffer> {
+    if (this.config.type === 'local' && this.config.local) {
+      const filePath = path.join(this.config.local.uploadPath, storedName);
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${storedName}`);
+      }
+      return fs.readFileSync(filePath);
+    } else if (this.config.type === 's3' && this.s3 && this.config.s3) {
+      const params = {
+        Bucket: this.config.s3.bucket,
+        Key: storedName
+      };
+      const result = await this.s3.getObject(params).promise();
+      return Buffer.from(result.Body);
+    } else {
+      throw new Error('Storage configuration is invalid');
+    }
+  }
+
+  // Метод для чтения текстового файла
+  async readTextFile(storedName: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
+    const buffer = await this.readFile(storedName);
+    return buffer.toString(encoding);
+  }
 }
