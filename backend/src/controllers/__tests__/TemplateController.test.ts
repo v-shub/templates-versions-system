@@ -711,8 +711,8 @@ describe('TemplateController', () => {
       expect(comparison.differences.metadata.changes).toBeDefined();
       expect(comparison.differences.metadata.author).toBeDefined();
       expect(comparison.differences.metadata.status).toBeDefined();
-      expect(comparison.differences.file.size).toBeDefined();
-      expect(comparison.differences.file.checksum.contentChanged).toBe(true);
+      expect(comparison.differences.fileMetadata.size).toBeDefined();
+      expect(comparison.differences.fileContent.contentChanged).toBe(true);
     });
 
     it('should return 404 if version1 not found', async () => {
@@ -951,7 +951,7 @@ describe('TemplateController', () => {
 
       const comparison = mockJson.mock.calls[0][0];
       // Файл не изменился (checksum одинаковый)
-      expect(comparison.differences.file.checksum.contentChanged).toBe(false);
+      expect(comparison.differences.fileContent.contentChanged).toBe(false);
       // Но метаданные изменились
       expect(comparison.differences.metadata.changes).toBeDefined();
       expect(comparison.differences.metadata.version).toBeDefined();
