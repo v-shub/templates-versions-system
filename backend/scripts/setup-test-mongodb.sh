@@ -5,6 +5,14 @@ CONTAINER_NAME="test-mongodb"
 IMAGE_NAME="mongo:7.0"
 PORT=27017
 
+# В CI окружении MongoDB уже доступен через GitHub Actions services
+# Пропускаем запуск Docker контейнера
+if [ -n "$CI" ]; then
+  echo "Running in CI environment, MongoDB is provided by GitHub Actions services"
+  echo "Skipping Docker container setup"
+  exit 0
+fi
+
 # Проверяем, запущен ли контейнер
 if docker ps | grep -q "$CONTAINER_NAME"; then
   echo "MongoDB container '$CONTAINER_NAME' is already running"
