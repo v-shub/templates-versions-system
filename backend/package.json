@@ -52,9 +52,10 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "seed": "ts-node src/seed.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:integration": "jest --testPathPattern=__tests__/.*.integration.test.ts"
+    "test:setup": "./scripts/setup-test-mongodb.sh",
+    "test": "npm run test:setup && jest",
+    "test:watch": "npm run test:setup && jest --watch",
+    "test:coverage": "npm run test:setup && jest --coverage",
+    "test:integration": "npm run test:setup && jest --testPathPattern=__tests__/.*.integration.test.ts"
   }
 }

@@ -6,9 +6,38 @@ let mongoServer: MongoMemoryServer;
 
 beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
+    // Приоритет 1: переменная окружения с MongoDB URI
+    const mongoUri = process.env.MONGODB_TEST_URI;
+    
+    if (mongoUri) {
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 10000,
+      });
+    } else {
+      // Приоритет 2: локальный MongoDB (Docker контейнер)
+      try {
+        await mongoose.connect('mongodb://localhost:27017/test-db', {
+          serverSelectionTimeoutMS: 5000,
+        });
+      } catch (localError: any) {
+        // Приоритет 3: MongoDB Memory Server (fallback)
+        try {
+          mongoServer = await MongoMemoryServer.create({
+            instance: {
+              dbName: 'test-db',
+            },
+          });
+          const memoryUri = mongoServer.getUri();
+          await mongoose.connect(memoryUri, {
+            serverSelectionTimeoutMS: 30000,
+            socketTimeoutMS: 30000,
+          });
+        } catch (memoryError: any) {
+          throw new Error(`Cannot connect to MongoDB. Local: ${localError.message}, Memory Server: ${memoryError.message}`);
+        }
+      }
+    }
   }
 
   // Mock Elasticsearch
@@ -80,7 +109,7 @@ jest.mock('../services/FileStorageService', () => {
         storedName: '123-test.pdf',
         mimeType: 'application/pdf',
         size: 1024,
-        url: 'http://test.com/files/123-test.pdf', // ИСПРАВЛЕНО: добавил /files/
+        url: 'http://test.com/files/123-test.pdf',
         checksum: 'abc123'
       }),
       deleteFile: jest.fn().mockResolvedValue({}),
@@ -111,18 +140,4 @@ describe('Setup', () => {
   it('should setup test environment', () => {
     expect(true).toBe(true);
   });
-});
-
-afterAll(async () => {
-  // Ждем завершения всех асинхронных операций
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  await mongoose.disconnect();
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
-  nock.cleanAll();
-  
-  // Закрываем все открытые таймеры
-  jest.useRealTimers();
 });
