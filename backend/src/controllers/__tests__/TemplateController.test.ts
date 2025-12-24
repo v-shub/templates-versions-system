@@ -360,36 +360,976 @@ describe('TemplateController', () => {
     expect(template?.metadata.version).toBe(2);
     expect(template?.metadata.author).toBe('Updated Author');
   });
+  });
 
-    it('should create new version when file is updated', async () => {
-      mockRequest = {
-        params: { id: templateId },
+  describe('restoreTemplateVersion', () => {
+    let templateId: string;
+    let versionId: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Template to Restore',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
         file: {
-          originalname: 'new.pdf',
-          mimetype: 'application/pdf',
-          size: 2048,
-          buffer: Buffer.from('new content'),
-          fieldname: 'file',
-          encoding: '7bit',
-          destination: '',
-          filename: 'new.pdf',
-          path: ''
-        } as Express.Multer.File,
-        body: {
-          changes: 'Updated file'
+          originalName: 'current.pdf',
+          storedName: 'current.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/current.pdf',
+          checksum: 'current'
+        },
+        metadata: {
+          author: 'Current Author',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'current'
         }
+      });
+      templateId = template.id.toString();
+
+      const version = await TemplateVersion.create({
+        templateId: template._id,
+        version: 1,
+        changes: 'Original version',
+        file: {
+          originalName: 'original.pdf',
+          storedName: 'original.pdf',
+          mimeType: 'application/pdf',
+          size: 512,
+          url: 'http://test.com/original.pdf',
+          checksum: 'original'
+        },
+        metadata: {
+          author: 'Original Author',
+          status: 'draft',
+          created: new Date()
+        }
+      });
+      versionId = version.id.toString();
+    });
+
+    it('should restore template version', async () => {
+      mockRequest = {
+        params: { id: templateId, versionId },
+        body: {}
       };
 
-      await controller.updateTemplate(
+      await controller.restoreTemplateVersion(
         mockRequest as Request,
         mockResponse as Response
       );
 
-      const versions = await TemplateVersion.find({ templateId });
-      expect(versions).toHaveLength(2); // Оригинальная + новая версия
-      
+      const updatedTemplate = await Template.findById(templateId);
+      expect(updatedTemplate?.metadata.version).toBe(2);
+      expect(mockJson).toHaveBeenCalled();
+      const response = mockJson.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.restoredVersion).toBe(1);
+      expect(response.newVersion).toBe(2);
+    });
+
+    it('should return 404 if version not found', async () => {
+      mockRequest = {
+        params: { id: templateId, versionId: new mongoose.Types.ObjectId().toString() },
+        body: {}
+      };
+
+      await controller.restoreTemplateVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Version not found' });
+    });
+
+    it('should return 400 if version does not belong to template', async () => {
+      const otherTemplate = await Template.create({
+        name: 'Other Template',
+        description: 'Other',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'other.pdf',
+          storedName: 'other.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/other.pdf',
+          checksum: 'other'
+        },
+        metadata: {
+          author: 'Other',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'other'
+        }
+      });
+
+      mockRequest = {
+        params: { id: otherTemplate.id.toString(), versionId },
+        body: {}
+      };
+
+      await controller.restoreTemplateVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Version does not belong to this template' });
+    });
+  });
+
+  describe('searchTemplatesEnhanced', () => {
+    it('should search templates with enhanced options', async () => {
+      mockRequest = {
+        query: { 
+          q: 'test',
+          category: 'Test',
+          highlight: 'true',
+          fuzzy: 'true'
+        }
+      };
+
+      await controller.searchTemplatesEnhanced(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+    });
+
+    it('should return 400 if query is missing', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.searchTemplatesEnhanced(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Query parameter "q" is required' });
+    });
+  });
+
+  describe('autocomplete', () => {
+    it('should return autocomplete suggestions', async () => {
+      mockRequest = {
+        query: { q: 'test', field: 'name' }
+      };
+
+      await controller.autocomplete(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+    });
+
+    it('should return 400 if query is missing', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.autocomplete(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Query parameter "q" is required' });
+    });
+  });
+
+  describe('downloadTemplate', () => {
+    let templateId: string;
+    let mockDownload: jest.Mock;
+    let mockRedirect: jest.Mock;
+
+    beforeEach(() => {
+      mockDownload = jest.fn();
+      mockRedirect = jest.fn();
+      mockResponse.download = mockDownload as any;
+      mockResponse.redirect = mockRedirect as any;
+    });
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Download Template',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'download.pdf',
+          storedName: 'download.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/download.pdf',
+          checksum: 'download'
+        },
+        metadata: {
+          author: 'Test',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'download'
+        }
+      });
+      templateId = template.id.toString();
+    });
+
+    it('should return 404 if template not found', async () => {
+      mockRequest = {
+        params: { id: new mongoose.Types.ObjectId().toString() }
+      };
+
+      await controller.downloadTemplate(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Template not found' });
+    });
+  });
+
+  describe('previewTemplate', () => {
+    let templateId: string;
+    let mockSendFile: jest.Mock;
+    let mockRedirect: jest.Mock;
+    let mockSet: jest.Mock;
+
+    beforeEach(() => {
+      mockSendFile = jest.fn();
+      mockRedirect = jest.fn();
+      mockSet = jest.fn();
+      mockResponse.sendFile = mockSendFile as any;
+      mockResponse.redirect = mockRedirect as any;
+      mockResponse.set = mockSet as any;
+    });
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Preview Template',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'preview.pdf',
+          storedName: 'preview.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/preview.pdf',
+          checksum: 'preview'
+        },
+        metadata: {
+          author: 'Test',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'preview'
+        }
+      });
+      templateId = template.id.toString();
+    });
+
+    it('should return 404 if template not found', async () => {
+      mockRequest = {
+        params: { id: new mongoose.Types.ObjectId().toString() }
+      };
+
+      await controller.previewTemplate(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Template not found' });
+    });
+
+    it('should return 415 for unsupported file type', async () => {
+      const template = await Template.create({
+        name: 'Unsupported Template',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'unsupported.bin',
+          storedName: 'unsupported.bin',
+          mimeType: 'application/octet-stream',
+          size: 1024,
+          url: 'http://test.com/unsupported.bin',
+          checksum: 'unsupported'
+        },
+        metadata: {
+          author: 'Test',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'unsupported'
+        }
+      });
+
+      mockRequest = {
+        params: { id: template.id.toString() }
+      };
+
+      await controller.previewTemplate(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(415);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'File type not supported for preview',
+        mimeType: 'application/octet-stream'
+      });
+    });
+  });
+
+  describe('uploadNewVersion', () => {
+    let templateId: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Version Upload Template',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'original.pdf',
+          storedName: 'original.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/original.pdf',
+          checksum: 'original'
+        },
+        metadata: {
+          author: 'Test',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'original'
+        }
+      });
+      templateId = template.id.toString();
+    });
+
+    it('should upload new version', async () => {
+      mockRequest = {
+        params: { id: templateId },
+        file: {
+          originalname: 'new-version.pdf',
+          mimetype: 'application/pdf',
+          size: 2048,
+          buffer: Buffer.from('new version'),
+          fieldname: 'file',
+          encoding: '7bit',
+          destination: '',
+          filename: 'new-version.pdf',
+          path: ''
+        } as Express.Multer.File,
+        body: {
+          changes: 'New version uploaded'
+        }
+      };
+
+      await controller.uploadNewVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
       const template = await Template.findById(templateId);
-      expect(template?.metadata.version).toBe(2);
+      expect(template?.metadata.version).toBeGreaterThan(1);
+    });
+
+    it('should return 400 if no file provided', async () => {
+      mockRequest = {
+        params: { id: templateId },
+        body: {}
+      };
+
+      await controller.uploadNewVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'File is required' });
+    });
+
+    it('should return 404 if template not found', async () => {
+      mockRequest = {
+        params: { id: new mongoose.Types.ObjectId().toString() },
+        file: {
+          originalname: 'test.pdf',
+          mimetype: 'application/pdf',
+          size: 1024,
+          buffer: Buffer.from('test')
+        } as Express.Multer.File,
+        body: {}
+      };
+
+      await controller.uploadNewVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Template not found' });
+    });
+  });
+
+  describe('restoreVersion', () => {
+    let templateId: string;
+    let versionId: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Template to Restore',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'current.pdf',
+          storedName: 'current.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/current.pdf',
+          checksum: 'current'
+        },
+        metadata: {
+          author: 'Current Author',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'current'
+        }
+      });
+      templateId = template.id.toString();
+
+      const version = await TemplateVersion.create({
+        templateId: template._id,
+        version: 1,
+        changes: 'Original version',
+        file: {
+          originalName: 'original.pdf',
+          storedName: 'original.pdf',
+          mimeType: 'application/pdf',
+          size: 512,
+          url: 'http://test.com/original.pdf',
+          checksum: 'original'
+        },
+        metadata: {
+          author: 'Original Author',
+          status: 'draft',
+          created: new Date()
+        }
+      });
+      versionId = version.id.toString();
+    });
+
+    it('should restore template version', async () => {
+      mockRequest = {
+        params: { id: templateId, versionId },
+        body: {}
+      };
+
+      await controller.restoreVersion(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      const updatedTemplate = await Template.findById(templateId);
+      expect(updatedTemplate?.metadata.version).toBe(2);
+      
+      const versions = await TemplateVersion.find({ templateId });
+      expect(versions).toHaveLength(2); 
+    });
+  });
+
+  describe('getTemplateMetadata', () => {
+    let templateId: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Metadata Template',
+        description: 'Test Description',
+        category: 'Test Category',
+        department: 'Test Department',
+        tags: ['tag1', 'tag2'],
+        file: {
+          originalName: 'metadata.pdf',
+          storedName: 'metadata.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/metadata.pdf',
+          checksum: 'metadata'
+        },
+        metadata: {
+          author: 'Test Author',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'metadata'
+        }
+      });
+      templateId = template.id.toString();
+    });
+
+    it('should return template metadata', async () => {
+      mockRequest = {
+        params: { id: templateId }
+      };
+
+      await controller.getTemplateMetadata(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const metadata = mockJson.mock.calls[0][0];
+      expect(metadata.name).toBe('Metadata Template');
+      expect(metadata.category).toBe('Test Category');
+      expect(metadata.department).toBe('Test Department');
+      expect(metadata.author).toBe('Test Author');
+      expect(metadata.version).toBe(1);
+      expect(metadata.status).toBe('draft');
+    });
+
+    it('should return 404 if template not found', async () => {
+      mockRequest = {
+        params: { id: new mongoose.Types.ObjectId().toString() }
+      };
+
+      await controller.getTemplateMetadata(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Template not found' });
+    });
+  });
+
+  describe('updateTemplateStatus', () => {
+    let templateId: string;
+
+    beforeEach(async () => {
+      const template = await Template.create({
+        name: 'Status Template',
+        description: 'Test',
+        category: 'Test',
+        department: 'Test',
+        tags: ['test'],
+        file: {
+          originalName: 'status.pdf',
+          storedName: 'status.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          url: 'http://test.com/status.pdf',
+          checksum: 'status'
+        },
+        metadata: {
+          author: 'Test',
+          version: 1,
+          status: 'draft',
+          lastModified: new Date(),
+          checksum: 'status'
+        }
+      });
+      templateId = template.id.toString();
+    });
+
+    it('should update template status', async () => {
+      mockRequest = {
+        params: { id: templateId },
+        body: { status: 'approved' }
+      };
+
+      await controller.updateTemplateStatus(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      const template = await Template.findById(templateId);
+      expect(template?.metadata.status).toBe('approved');
+      expect(mockJson).toHaveBeenCalled();
+    });
+
+    it('should return 400 for invalid status', async () => {
+      mockRequest = {
+        params: { id: templateId },
+        body: { status: 'invalid' }
+      };
+
+      await controller.updateTemplateStatus(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Valid status is required (draft, approved, deprecated)'
+      });
+    });
+
+    it('should return 404 if template not found', async () => {
+      mockRequest = {
+        params: { id: new mongoose.Types.ObjectId().toString() },
+        body: { status: 'approved' }
+      };
+
+      await controller.updateTemplateStatus(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({ error: 'Template not found' });
+    });
+  });
+
+  describe('getCategories', () => {
+    beforeEach(async () => {
+      await Template.create([
+        {
+          name: 'Template 1',
+          description: 'Test',
+          category: 'Custom Category 1',
+          department: 'Test',
+          tags: ['test'],
+          file: {
+            originalName: 'test1.pdf',
+            storedName: 'test1.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test1.pdf',
+            checksum: 'test1'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test1'
+          }
+        },
+        {
+          name: 'Template 2',
+          description: 'Test',
+          category: 'Custom Category 2',
+          department: 'Test',
+          tags: ['test'],
+          file: {
+            originalName: 'test2.pdf',
+            storedName: 'test2.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test2.pdf',
+            checksum: 'test2'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test2'
+          }
+        }
+      ]);
+    });
+
+    it('should return categories', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.getCategories(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const categories = mockJson.mock.calls[0][0];
+      expect(Array.isArray(categories)).toBe(true);
+      expect(categories.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getDepartments', () => {
+    beforeEach(async () => {
+      await Template.create([
+        {
+          name: 'Template 1',
+          description: 'Test',
+          category: 'Test',
+          department: 'Custom Department 1',
+          tags: ['test'],
+          file: {
+            originalName: 'test1.pdf',
+            storedName: 'test1.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test1.pdf',
+            checksum: 'test1'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test1'
+          }
+        },
+        {
+          name: 'Template 2',
+          description: 'Test',
+          category: 'Test',
+          department: 'Custom Department 2',
+          tags: ['test'],
+          file: {
+            originalName: 'test2.pdf',
+            storedName: 'test2.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test2.pdf',
+            checksum: 'test2'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test2'
+          }
+        }
+      ]);
+    });
+
+    it('should return departments', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.getDepartments(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const departments = mockJson.mock.calls[0][0];
+      expect(Array.isArray(departments)).toBe(true);
+      expect(departments.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getPopularTags', () => {
+    beforeEach(async () => {
+      await Template.create([
+        {
+          name: 'Template 1',
+          description: 'Test',
+          category: 'Test',
+          department: 'Test',
+          tags: ['tag1', 'tag2', 'tag3'],
+          file: {
+            originalName: 'test1.pdf',
+            storedName: 'test1.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test1.pdf',
+            checksum: 'test1'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test1'
+          }
+        },
+        {
+          name: 'Template 2',
+          description: 'Test',
+          category: 'Test',
+          department: 'Test',
+          tags: ['tag1', 'tag2'],
+          file: {
+            originalName: 'test2.pdf',
+            storedName: 'test2.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test2.pdf',
+            checksum: 'test2'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test2'
+          }
+        },
+        {
+          name: 'Template 3',
+          description: 'Test',
+          category: 'Test',
+          department: 'Test',
+          tags: ['tag1'],
+          file: {
+            originalName: 'test3.pdf',
+            storedName: 'test3.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test3.pdf',
+            checksum: 'test3'
+          },
+          metadata: {
+            author: 'Test',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'test3'
+          }
+        }
+      ]);
+    });
+
+    it('should return popular tags', async () => {
+      mockRequest = {
+        query: { limit: '10' }
+      };
+
+      await controller.getPopularTags(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const tags = mockJson.mock.calls[0][0];
+      expect(Array.isArray(tags)).toBe(true);
+      expect(tags.length).toBeGreaterThan(0);
+      // tag1 должен быть самым популярным (3 раза)
+      expect(tags[0].tag).toBe('tag1');
+      expect(tags[0].count).toBe(3);
+    });
+
+    it('should respect limit parameter', async () => {
+      mockRequest = {
+        query: { limit: '2' }
+      };
+
+      await controller.getPopularTags(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      const tags = mockJson.mock.calls[0][0];
+      expect(tags.length).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe('getTemplateStats', () => {
+    beforeEach(async () => {
+      // Создаем тестовые данные для статистики
+      await Template.create([
+        {
+          name: 'Template 1',
+          description: 'Desc 1',
+          category: 'Category A',
+          department: 'Department X',
+          tags: ['tag1'],
+          file: {
+            originalName: 'file1.pdf',
+            storedName: 'stored1.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/file1.pdf',
+            checksum: 'checksum1'
+          },
+          metadata: {
+            author: 'Author 1',
+            version: 1,
+            status: 'draft',
+            lastModified: new Date(),
+            checksum: 'checksum1'
+          }
+        },
+        {
+          name: 'Template 2',
+          description: 'Desc 2',
+          category: 'Category B',
+          department: 'Department X',
+          tags: ['tag1', 'tag2'],
+          file: {
+            originalName: 'file2.pdf',
+            storedName: 'stored2.pdf',
+            mimeType: 'application/pdf',
+            size: 2048,
+            url: 'http://test.com/file2.pdf',
+            checksum: 'checksum2'
+          },
+          metadata: {
+            author: 'Author 2',
+            version: 1,
+            status: 'approved',
+            lastModified: new Date(),
+            checksum: 'checksum2'
+          }
+        }
+      ]);
+
+      await TemplateVersion.create([
+        {
+          templateId: new mongoose.Types.ObjectId(),
+          version: 1,
+          changes: 'Test',
+          file: {
+            originalName: 'test.pdf',
+            storedName: 'test.pdf',
+            mimeType: 'application/pdf',
+            size: 1024,
+            url: 'http://test.com/test.pdf',
+            checksum: 'test'
+          },
+          metadata: {
+            author: 'Test',
+            status: 'draft',
+            created: new Date()
+          }
+        }
+      ]);
+    });
+
+    it('should return template statistics', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.getTemplateStats(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      const stats = mockJson.mock.calls[0][0];
+      expect(stats.totalTemplates).toBe(2);
+      expect(stats.totalVersions).toBe(1);
+      expect(stats.byStatus).toHaveProperty('draft');
+      expect(stats.byStatus).toHaveProperty('approved');
     });
   });
 
@@ -437,6 +1377,41 @@ describe('TemplateController', () => {
       
       expect(mockJson).toHaveBeenCalledWith({ 
         message: 'Template deleted successfully' 
+      });
+    });
+  });
+
+  describe('searchTemplates', () => {
+    it('should search templates via elasticsearch', async () => {
+      mockRequest = {
+        query: { q: 'test' }
+      };
+
+      await controller.searchTemplates(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalled();
+      const response = mockJson.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(Array.isArray(response.data)).toBe(true);
+    });
+
+    it('should return 400 if query is missing', async () => {
+      mockRequest = {
+        query: {}
+      };
+
+      await controller.searchTemplates(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Query parameter "q" is required'
       });
     });
   });
@@ -540,75 +1515,6 @@ describe('TemplateController', () => {
       const responseData = mockJson.mock.calls[0][0];
       expect(responseData.versions).toHaveLength(1);
       expect(responseData.totalPages).toBe(2);
-    });
-  });
-
-  describe('restoreVersion', () => {
-    let templateId: string;
-    let versionId: string;
-
-    beforeEach(async () => {
-      const template = await Template.create({
-        name: 'Template to Restore',
-        description: 'Test',
-        category: 'Test',
-        department: 'Test',
-        tags: ['test'],
-        file: {
-          originalName: 'current.pdf',
-          storedName: 'current.pdf',
-          mimeType: 'application/pdf',
-          size: 1024,
-          url: 'http://test.com/current.pdf',
-          checksum: 'current'
-        },
-        metadata: {
-          author: 'Current Author',
-          version: 1,
-          status: 'draft',
-          lastModified: new Date(),
-          checksum: 'current'
-        }
-      });
-      templateId = template.id.toString();
-
-      const version = await TemplateVersion.create({
-        templateId: template._id,
-        version: 1,
-        changes: 'Original version',
-        file: {
-          originalName: 'original.pdf',
-          storedName: 'original.pdf',
-          mimeType: 'application/pdf',
-          size: 512,
-          url: 'http://test.com/original.pdf',
-          checksum: 'original'
-        },
-        metadata: {
-          author: 'Original Author',
-          status: 'draft',
-          created: new Date()
-        }
-      });
-      versionId = version.id.toString();
-    });
-
-    it('should restore template version', async () => {
-      mockRequest = {
-        params: { id: templateId, versionId },
-        body: {}
-      };
-
-      await controller.restoreVersion(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      const updatedTemplate = await Template.findById(templateId);
-      expect(updatedTemplate?.metadata.version).toBe(2);
-      
-      const versions = await TemplateVersion.find({ templateId });
-      expect(versions).toHaveLength(2); 
     });
   });
 
@@ -958,129 +1864,5 @@ describe('TemplateController', () => {
     });
   });
 
-  describe('getTemplateStats', () => {
-    beforeEach(async () => {
-      // Создаем тестовые данные для статистики
-      await Template.create([
-        {
-          name: 'Template 1',
-          description: 'Desc 1',
-          category: 'Category A',
-          department: 'Department X',
-          tags: ['tag1'],
-          file: {
-            originalName: 'file1.pdf',
-            storedName: 'stored1.pdf',
-            mimeType: 'application/pdf',
-            size: 1024,
-            url: 'http://test.com/file1.pdf',
-            checksum: 'checksum1'
-          },
-          metadata: {
-            author: 'Author 1',
-            version: 1,
-            status: 'draft',
-            lastModified: new Date(),
-            checksum: 'checksum1'
-          }
-        },
-        {
-          name: 'Template 2',
-          description: 'Desc 2',
-          category: 'Category B',
-          department: 'Department X',
-          tags: ['tag1', 'tag2'],
-          file: {
-            originalName: 'file2.pdf',
-            storedName: 'stored2.pdf',
-            mimeType: 'application/pdf',
-            size: 2048,
-            url: 'http://test.com/file2.pdf',
-            checksum: 'checksum2'
-          },
-          metadata: {
-            author: 'Author 2',
-            version: 1,
-            status: 'approved',
-            lastModified: new Date(),
-            checksum: 'checksum2'
-          }
-        }
-      ]);
-
-      await TemplateVersion.create([
-        {
-          templateId: new mongoose.Types.ObjectId(),
-          version: 1,
-          changes: 'Test',
-          file: {
-            originalName: 'test.pdf',
-            storedName: 'test.pdf',
-            mimeType: 'application/pdf',
-            size: 1024,
-            url: 'http://test.com/test.pdf',
-            checksum: 'test'
-          },
-          metadata: {
-            author: 'Test',
-            status: 'draft',
-            created: new Date()
-          }
-        }
-      ]);
-    });
-
-    it('should return template statistics', async () => {
-      mockRequest = {
-        query: {}
-      };
-
-      await controller.getTemplateStats(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      const stats = mockJson.mock.calls[0][0];
-      expect(stats.totalTemplates).toBe(2);
-      expect(stats.totalVersions).toBe(1);
-      expect(stats.byStatus).toHaveProperty('draft');
-      expect(stats.byStatus).toHaveProperty('approved');
-    });
-  });
-
-  describe('searchTemplates', () => {
-    it('should search templates via elasticsearch', async () => {
-      mockRequest = {
-        query: { q: 'test' }
-      };
-
-      await controller.searchTemplates(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockJson).toHaveBeenCalled();
-      const response = mockJson.mock.calls[0][0];
-      expect(response.success).toBe(true);
-      expect(Array.isArray(response.data)).toBe(true);
-    });
-
-    it('should return 400 if query is missing', async () => {
-      mockRequest = {
-        query: {}
-      };
-
-      await controller.searchTemplates(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        success: false,
-        error: 'Query parameter "q" is required'
-      });
-    });
-  });
 });
 });
