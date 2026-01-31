@@ -6,8 +6,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import TemplateManager from './components/TemplateManager/TemplateManager';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
-import { Box, AppBar, Toolbar, Typography, Container, Button, CircularProgress } from '@mui/material';
-import { FolderSpecial as TemplateIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import Profile from './components/Auth/Profile';
+import { Box, AppBar, Toolbar, Typography, Container, Button, CircularProgress, IconButton } from '@mui/material';
+import { FolderSpecial as TemplateIcon, Logout as LogoutIcon, Person as PersonIcon } from '@mui/icons-material';
 
 const theme = createTheme({
   palette: {
@@ -48,10 +49,12 @@ const theme = createTheme({
 });
 
 type AuthView = 'login' | 'register';
+type MainView = 'dashboard' | 'profile';
 
 function AppContent() {
   const { token, user, loading, logout } = useAuth();
   const [authView, setAuthView] = useState<AuthView>('login');
+  const [mainView, setMainView] = useState<MainView>('dashboard');
 
   if (loading) {
     return (
@@ -90,11 +93,31 @@ function AppContent() {
       <AppBar position="static" elevation={0}>
         <Toolbar>
           <TemplateIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{ flexGrow: 1, cursor: 'pointer', '&:hover': { opacity: 0.9 } }}
+            onClick={() => setMainView('dashboard')}
+          >
             Template Manager
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">{user?.name || user?.email}</Typography>
+            <IconButton
+              color="inherit"
+              onClick={() => setMainView('profile')}
+              title="Мой профиль"
+              size="small"
+            >
+              <PersonIcon />
+            </IconButton>
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setMainView('profile')}
+              sx={{ textTransform: 'none', minWidth: 'auto' }}
+            >
+              {user?.name || user?.email}
+            </Button>
             <Button color="inherit" startIcon={<LogoutIcon />} onClick={logout} size="small">
               Выход
             </Button>
@@ -105,7 +128,11 @@ function AppContent() {
 
       <Box component="main" sx={{ minHeight: 'calc(100vh - 64px)' }}>
         <Container maxWidth={false} sx={{ py: 3 }}>
-          <TemplateManager />
+          {mainView === 'dashboard' ? (
+            <TemplateManager />
+          ) : (
+            <Profile onBack={() => setMainView('dashboard')} />
+          )}
         </Container>
       </Box>
 

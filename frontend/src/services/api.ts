@@ -48,6 +48,17 @@ export const authApi = {
     const response = await apiClient.get<{ success: boolean; user: AuthUser }>('/auth/me');
     return response.data;
   },
+  updateProfile: async (data: { name?: string; email?: string }): Promise<{ success: boolean; user: AuthUser }> => {
+    const response = await apiClient.patch<{ success: boolean; user: AuthUser }>('/auth/me', data);
+    return response.data;
+  },
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    const response = await apiClient.post<{ success: boolean; message?: string }>('/auth/me/password', {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  },
 };
 
 // Интерфейсы

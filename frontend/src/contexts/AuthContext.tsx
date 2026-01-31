@@ -16,6 +16,9 @@ interface AuthContextValue extends AuthState {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  updateUser: (user: AuthUser) => void;
+  updateProfile: (data: { name?: string; email?: string }) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,6 +84,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [persistAuth]);
 
+  const updateUser = useCallback((newUser: AuthUser) => {
+    setUser(newUser);
+    if (newUser) {
+      localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (data: { name?: string; email?: string }) => {
+    setError(null);
+    try {
+      const { user: updatedUser } = await authApi.updateProfile(data);
+      updateUser(updatedUser);
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+        : 'Ошибка обновления профиля';
+      setError(msg || 'Ошибка обновления профиля');
+      throw err;
+    }
+  }, [updateUser]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    setError(null);
+    try {
+      await authApi.changePassword(currentPassword, newPassword);
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+        : 'Ошибка смены пароля';
+      setError(msg || 'Ошибка смены пароля');
+      throw err;
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const storedToken = localStorage.getItem(TOKEN_KEY);
@@ -111,6 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     clearError: () => setError(null),
+    updateUser,
+    updateProfile,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
