@@ -15,6 +15,41 @@ const multipartClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
+/** Установить JWT для всех запросов к API */
+export const setAuthToken = (token: string | null): void => {
+  const value = token ? `Bearer ${token}` : '';
+  apiClient.defaults.headers.common['Authorization'] = value;
+  multipartClient.defaults.headers.common['Authorization'] = value;
+};
+
+// Auth API и типы
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: AuthUser;
+}
+
+export const authApi = {
+  login: async (email: string, password: string): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/login', { email, password });
+    return response.data;
+  },
+  register: async (email: string, password: string, name: string): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/register', { email, password, name });
+    return response.data;
+  },
+  me: async (): Promise<{ success: boolean; user: AuthUser }> => {
+    const response = await apiClient.get<{ success: boolean; user: AuthUser }>('/auth/me');
+    return response.data;
+  },
+};
+
 // Интерфейсы
 export interface Template {
   _id: string;

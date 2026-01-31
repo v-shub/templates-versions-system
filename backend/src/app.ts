@@ -2,13 +2,15 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import templateRoutes from './routes/templateRoutes';
+import authRoutes from './routes/authRoutes';
+import { protect } from './middleware/auth';
 import { ElasticsearchService } from './services/ElasticsearchService';
 import { setupSwagger } from './swagger';
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Middleware (Authorization for JWT)
+app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -22,8 +24,9 @@ setupSwagger(app);
 const elasticsearchService = new ElasticsearchService();
 elasticsearchService.createIndexIfNotExists().catch(console.error);
 
-// Routes
-app.use('/api', templateRoutes);
+// Routes (auth public, templates protected by JWT)
+app.use('/api/auth', authRoutes);
+app.use('/api', protect, templateRoutes);
 
 // Health check route с проверкой Elasticsearch
 app.get('/health', async (req, res) => {

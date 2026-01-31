@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ReactQueryProvider } from './providers/ReactQueryProvider';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import TemplateManager from './components/TemplateManager/TemplateManager';
-import { Box, AppBar, Toolbar, Typography, Container } from '@mui/material';
-import { FolderSpecial as TemplateIcon } from '@mui/icons-material';
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
+import { Box, AppBar, Toolbar, Typography, Container, Button, CircularProgress } from '@mui/material';
+import { FolderSpecial as TemplateIcon, Logout as LogoutIcon } from '@mui/icons-material';
 
 const theme = createTheme({
   palette: {
@@ -44,51 +47,95 @@ const theme = createTheme({
   },
 });
 
-function App() {
-  return (
-    <ReactQueryProvider>
+type AuthView = 'login' | 'register';
+
+function AppContent() {
+  const { token, user, loading, logout } = useAuth();
+  const [authView, setAuthView] = useState<AuthView>('login');
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!token) {
+    return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        
-        {/* Шапка */}
         <AppBar position="static" elevation={0}>
           <Toolbar>
             <TemplateIcon sx={{ mr: 2 }} />
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               Template Manager
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Typography variant="body2">v1.0.0</Typography>
-            </Box>
           </Toolbar>
         </AppBar>
-
-        {/* Основной контент */}
-        <Box component="main" sx={{ minHeight: 'calc(100vh - 64px)' }}>
-          <Container maxWidth={false} sx={{ py: 3 }}>
-            <TemplateManager />
-          </Container>
-        </Box>
-
-        {/* Подвал */}
-        <Box
-          component="footer"
-          sx={{
-            py: 3,
-            px: 2,
-            mt: 'auto',
-            backgroundColor: (theme) => theme.palette.grey[100],
-            borderTop: (theme) => `1px solid ${theme.palette.grey[300]}`,
-          }}
-        >
-          <Container maxWidth="xl">
-            <Typography variant="body2" color="text.secondary" align="center">
-              © {new Date().getFullYear()} Template Management System. 
-              Все права защищены.
-            </Typography>
-          </Container>
+        <Box component="main">
+          {authView === 'login' ? (
+            <Login onNavigateToRegister={() => setAuthView('register')} />
+          ) : (
+            <Register onNavigateToLogin={() => setAuthView('login')} />
+          )}
         </Box>
       </ThemeProvider>
+    );
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppBar position="static" elevation={0}>
+        <Toolbar>
+          <TemplateIcon sx={{ mr: 2 }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Template Manager
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2">{user?.name || user?.email}</Typography>
+            <Button color="inherit" startIcon={<LogoutIcon />} onClick={logout} size="small">
+              Выход
+            </Button>
+            <Typography variant="body2">v1.0.0</Typography>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Box component="main" sx={{ minHeight: 'calc(100vh - 64px)' }}>
+        <Container maxWidth={false} sx={{ py: 3 }}>
+          <TemplateManager />
+        </Container>
+      </Box>
+
+      <Box
+        component="footer"
+        sx={{
+          py: 3,
+          px: 2,
+          mt: 'auto',
+          backgroundColor: (theme) => theme.palette.grey[100],
+          borderTop: (theme) => `1px solid ${theme.palette.grey[300]}`,
+        }}
+      >
+        <Container maxWidth="xl">
+          <Typography variant="body2" color="text.secondary" align="center">
+            © {new Date().getFullYear()} Template Management System.
+            Все права защищены.
+          </Typography>
+        </Container>
+      </Box>
+    </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <ReactQueryProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ReactQueryProvider>
   );
 }
