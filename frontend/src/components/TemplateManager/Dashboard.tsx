@@ -30,6 +30,12 @@ import {
 } from '@mui/icons-material';
 import { templateApi } from '../../services/api';
 import {
+  getStatusData,
+  getStatusChartData,
+  getActivityData,
+  getApprovedCount,
+} from './dashboardStatsUtils';
+import {
   BarChart,
   Bar,
   XAxis,
@@ -45,6 +51,8 @@ import {
   Line,
 } from 'recharts';
 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
 const Dashboard: React.FC = () => {
   const {
     data: stats,
@@ -52,8 +60,6 @@ const Dashboard: React.FC = () => {
     error,
     refetch,
   } = useQuery('templateStats', templateApi.getStats);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   if (isLoading) {
     return (
@@ -71,99 +77,18 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // ТОЧНАЯ обработка данных по статусам
-  const getStatusData = () => {
-    if (!stats?.byStatus || typeof stats.byStatus !== 'object') {
-      return [];
-    }
-
-    // Преобразуем объект в массив с правильными названиями
-    const statusEntries = Object.entries(stats.byStatus);
-    
-    // Логируем для отладки
-    console.log('Статистика по статусам:', stats.byStatus);
-    console.log('Преобразованные записи:', statusEntries);
-
-    return statusEntries.map(([statusKey, count]: [string, any]) => {
-      let statusName;
-      
-      switch (statusKey.toLowerCase()) {
-        case 'draft':
-          statusName = 'Черновики';
-          break;
-        case 'approved':
-          statusName = 'Утвержденные';
-          break;
-        case 'deprecated':
-          statusName = 'Устаревшие';
-          break;
-        default:
-          statusName = statusKey;
-      }
-
-      return {
-        name: statusName,
-        value: Number(count) || 0,
-        originalKey: statusKey,
-      };
-    }).filter(item => item.value > 0); // Фильтруем только статусы с количеством > 0
-  };
-
-  const statusData = getStatusData();
-  
-  // Вычисляем общее количество для процентов
-  const totalStatusCount = statusData.reduce((sum, item) => sum + item.value, 0);
-
-  // Подготовка данных для графика с процентами
-  const statusChartData = statusData.map(item => ({
-    ...item,
-    percentage: totalStatusCount > 0 ? 
-      ((item.value / totalStatusCount) * 100).toFixed(1) : 
-      '0.0',
-    label: `${item.name}: ${item.value} (${totalStatusCount > 0 ? 
-      ((item.value / totalStatusCount) * 100).toFixed(1) : 
-      '0.0'}%)`
-  }));
-
-  // Логи для отладки
+  const statusData = getStatusData(stats);
+  const { statusChartData, totalStatusCount } = getStatusChartData(statusData);
   console.log('Итоговые данные статусов:', statusChartData);
   console.log('Всего шаблонов по статусам:', totalStatusCount);
 
   const categoryData = stats?.byCategory || [];
   const departmentData = stats?.byDepartment || [];
-
-  // Реальные данные активности (если есть в API)
-  const getActivityData = () => {
-    if (stats?.activityByMonth && Array.isArray(stats.activityByMonth)) {
-      return stats.activityByMonth.map((item: any) => ({
-        month: item.month,
-        templates: item.newTemplates || 0,
-        versions: item.newVersions || 0,
-      }));
-    }
-    
-    return [];
-  };
-
-  const activityData = getActivityData();
-
-  // Получаем точное количество активных шаблонов
-  const getApprovedCount = () => {
-    if (stats?.byStatus?.approved !== undefined) {
-      return Number(stats.byStatus.approved);
-    }
-    
-    // Ищем в statusData
-    const approvedItem = statusData.find(item => 
-      item.originalKey.toLowerCase() === 'approved'
-    );
-    return approvedItem ? approvedItem.value : 0;
-  };
-
-  const approvedCount = getApprovedCount();
+  const activityData = getActivityData(stats);
+  const approvedCount = getApprovedCount(stats, statusData);
   const totalTemplates = stats?.totalTemplates || 0;
-  const approvedPercentage = totalTemplates > 0 ? 
-    Math.round((approvedCount / totalTemplates) * 100) : 0;
+  const approvedPercentage =
+    totalTemplates > 0 ? Math.round((approvedCount / totalTemplates) * 100) : 0;
 
   return (
     <Box>
