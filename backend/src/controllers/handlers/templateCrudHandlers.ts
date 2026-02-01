@@ -7,6 +7,7 @@ import Template from '../../models/Template';
 import TemplateVersion from '../../models/TemplateVersion';
 import type { TemplateControllerServices } from '../types';
 import { parseTags } from './parseTags';
+import logger from '../../logger';
 
 export async function createTemplate(
   req: Request,
@@ -79,6 +80,15 @@ export async function createTemplate(
       },
     });
     await templateVersion.save();
+
+    if (process.env.REDIS_URL) {
+      try {
+        const { versionQueue } = await import('../../queue/jobs');
+        await versionQueue.add('computeDiff', { versionId: (templateVersion as any)._id.toString() });
+      } catch (err) {
+        logger.warn('Failed to enqueue computeDiff', { err, versionId: (templateVersion as any)._id });
+      }
+    }
 
     await services.elasticsearch.indexTemplate(template);
     await services.redis.delPattern('templates:*');
@@ -298,6 +308,16 @@ export async function updateTemplate(
       });
       await templateVersion.save();
       savedVersion = templateVersion;
+
+      // Section 12.1: enqueue computeDiff when REDIS_URL is set (worker processes async)
+      if (process.env.REDIS_URL) {
+        try {
+          const { versionQueue } = await import('../../queue/jobs');
+          await versionQueue.add('computeDiff', { versionId: savedVersion._id.toString() });
+        } catch (err) {
+          logger.warn('Failed to enqueue computeDiff', { err, versionId: savedVersion._id });
+        }
+      }
     }
 
     const updatedTemplate = await Template.findByIdAndUpdate(

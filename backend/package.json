@@ -20,6 +20,8 @@
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^5.0.0",
     "pdf-parse": "^2.2.2",
+    "bullmq": "^5.34.4",
+    "ioredis": "^5.4.1",
     "redis": "^4.7.1",
     "socket.io": "^4.7.2",
     "swagger-jsdoc": "^6.2.8",
@@ -64,6 +66,7 @@
     "test": "npm run test:setup && jest",
     "test:watch": "npm run test:setup && jest --watch",
     "test:coverage": "npm run test:setup && jest --coverage",
-    "test:integration": "npm run test:setup && jest --testPathPattern=__tests__/.*.integration.test.ts"
+    "test:integration": "npm run test:setup && jest --testPathPattern=__tests__/.*.integration.test.ts",
+    "worker": "ts-node-dev --transpile-only src/worker.ts"
   }
 }
