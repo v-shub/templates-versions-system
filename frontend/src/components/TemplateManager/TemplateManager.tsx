@@ -233,6 +233,7 @@ const TemplateManager: React.FC = () => {
           open={isVersionDialogOpen}
           onClose={() => setIsVersionDialogOpen(false)}
           template={selectedTemplate}
+          onTemplateUpdated={setSelectedTemplate}
         />
       )}
 

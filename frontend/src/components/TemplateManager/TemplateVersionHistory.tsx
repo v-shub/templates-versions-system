@@ -46,12 +46,14 @@ interface TemplateVersionHistoryProps {
   open: boolean;
   onClose: () => void;
   template: Template;
+  onTemplateUpdated?: (template: Template) => void;
 }
 
 const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
   open,
   onClose,
   template,
+  onTemplateUpdated,
 }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -67,6 +69,14 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
 
   const queryClient = useQueryClient();
 
+  // Актуальные данные шаблона (обновляются после восстановления версии)
+  const { data: freshTemplate } = useQuery(
+    ['template', template._id],
+    () => templateApi.getTemplate(template._id),
+    { enabled: open && !!template._id }
+  );
+  const displayTemplate = freshTemplate ?? template;
+
   // Загрузка версий
   const {
     data: versionsData,
@@ -74,7 +84,8 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
     error,
   } = useQuery(
     ['templateVersions', template._id, page, rowsPerPage],
-    () => templateApi.getTemplateVersions(template._id, page + 1, rowsPerPage)
+    () => templateApi.getTemplateVersions(template._id, page + 1, rowsPerPage),
+    { enabled: open && !!template._id }
   );
 
   // Мутация для восстановления версии
@@ -82,12 +93,15 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
     ({ templateId, versionId }: { templateId: string; versionId: string }) =>
       templateApi.restoreVersion(templateId, versionId),
     {
-      onSuccess: () => {
+      onSuccess: (data: { template?: Template }) => {
         queryClient.invalidateQueries(['templateVersions', template._id]);
         queryClient.invalidateQueries(['template', template._id]);
         queryClient.invalidateQueries('templates');
         setRestoreDialogOpen(false);
         setVersionToRestore(null);
+        if (data?.template && onTemplateUpdated) {
+          onTemplateUpdated(data.template);
+        }
       },
     }
   );
@@ -131,11 +145,11 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
   const handleCompare = (version: TemplateVersion) => {
     // Находим текущую версию шаблона в списке версий
     const currentVersion = versionsData?.versions?.find(
-      (v: TemplateVersion) => v.version === template.metadata.version
+      (v: TemplateVersion) => v.version === displayTemplate.metadata.version
     );
 
     // Если выбранная версия - текущая, сравниваем с предыдущей
-    if (version.version === template.metadata.version) {
+    if (version.version === displayTemplate.metadata.version) {
       const previousVersion = versionsData?.versions?.find(
         (v: TemplateVersion) => v.version === version.version - 1
       );
@@ -225,7 +239,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
             <Box>
               <Typography variant="h6">История версий</Typography>
               <Typography variant="caption" color="text.secondary">
-                {template.name} (Текущая версия: {template.metadata.version})
+                {displayTemplate.name} (Текущая версия: {displayTemplate.metadata.version})
               </Typography>
             </Box>
           </Box>
@@ -239,27 +253,27 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
           <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
             <Stack direction="row" spacing={3} alignItems="center">
               <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
-                <Typography variant="h5">{getFileIcon(template.file.mimeType)}</Typography>
+                <Typography variant="h5">{getFileIcon(displayTemplate.file.mimeType)}</Typography>
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="subtitle1" fontWeight="medium">
-                  {template.name}
+                  {displayTemplate.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {template.description}
+                  {displayTemplate.description}
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                  <Chip label={template.category} size="small" />
-                  <Chip label={template.department} size="small" />
+                  <Chip label={displayTemplate.category} size="small" />
+                  <Chip label={displayTemplate.department} size="small" />
                   <Chip
-                    label={`v${template.metadata.version}`}
+                    label={`v${displayTemplate.metadata.version}`}
                     size="small"
                     color="primary"
                   />
                   <Chip
-                    label={template.metadata.status}
+                    label={displayTemplate.metadata.status}
                     size="small"
-                    color={getStatusColor(template.metadata.status) as any}
+                    color={getStatusColor(displayTemplate.metadata.status) as any}
                   />
                 </Stack>
               </Box>
@@ -301,7 +315,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                       key={version._id}
                       sx={{
                         '&:hover': { bgcolor: 'action.hover' },
-                        ...(version.version === template.metadata.version && {
+                        ...(version.version === displayTemplate.metadata.version && {
                           bgcolor: 'primary.50',
                         }),
                       }}
@@ -310,15 +324,15 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography
                             fontWeight={
-                              version.version === template.metadata.version ? 'bold' : 'normal'
+                              version.version === displayTemplate.metadata.version ? 'bold' : 'normal'
                             }
                             color={
-                              version.version === template.metadata.version ? 'primary' : 'inherit'
+                              version.version === displayTemplate.metadata.version ? 'primary' : 'inherit'
                             }
                           >
                             v{version.version}
                           </Typography>
-                          {version.version === template.metadata.version && (
+                          {version.version === displayTemplate.metadata.version && (
                             <Chip label="Текущая" size="small" color="primary" />
                           )}
                         </Box>
@@ -364,7 +378,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          {version.version !== template.metadata.version && (
+                          {version.version !== displayTemplate.metadata.version && (
                             <Tooltip title="Восстановить">
                               <IconButton
                                 size="small"
