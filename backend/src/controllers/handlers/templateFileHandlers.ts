@@ -6,6 +6,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import Template from '../../models/Template';
+import TemplateVersion from '../../models/TemplateVersion';
 import type { TemplateControllerServices } from '../types';
 import * as templateCrudHandlers from './templateCrudHandlers';
 
@@ -40,6 +41,45 @@ export async function downloadTemplate(
       res.download(filePath, template.file.originalName);
     } else {
       res.redirect(template.file.url);
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function downloadVersion(
+  req: Request,
+  res: Response,
+  services: TemplateControllerServices
+): Promise<void> {
+  try {
+    const templateId = req.params.id;
+    const versionId = req.params.versionId;
+
+    const version = await TemplateVersion.findOne({
+      _id: versionId,
+      templateId,
+    });
+
+    if (!version) {
+      res.status(404).json({ error: 'Version not found' });
+      return;
+    }
+
+    if (process.env.STORAGE_TYPE === 'local') {
+      const filePath = path.join(
+        process.env.UPLOAD_PATH ?? './uploads',
+        version.file.storedName
+      );
+
+      if (!fs.existsSync(filePath)) {
+        res.status(404).json({ error: 'File not found' });
+        return;
+      }
+
+      res.download(filePath, version.file.originalName);
+    } else {
+      res.redirect(version.file.url);
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });

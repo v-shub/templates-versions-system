@@ -9,6 +9,7 @@ import {
   validateTemplateId,
   validateRestoreVersionParams,
   validateCompareVersionsParams,
+  validateVersionDownloadParams,
   validateSearchQuery,
   validateAutocompleteQuery,
 } from '../middleware/validators';
@@ -125,9 +126,13 @@ router.delete('/templates/:id', validateTemplateId, templateController.deleteTem
 router.get('/templates/:id/download', validateTemplateId, templateController.downloadTemplate);
 router.get('/templates/:id/preview', validateTemplateId, templateController.previewTemplate);
 
-// Версии
-// ВАЖНО: более специфичные маршруты должны быть раньше общих
+// Версии — более специфичные маршруты раньше общих
 router.get('/templates/:id/versions/compare/:version1Id/:version2Id', validateCompareVersionsParams, templateController.compareVersions);
+router.get(
+  '/templates/:id/versions/:versionId/download',
+  validateVersionDownloadParams,
+  templateController.downloadVersion
+);
 router.post('/templates/:id/versions/:versionId/restore', validateRestoreVersionParams, templateController.restoreVersion);
 router.post('/templates/:id/versions', upload.single('file'), validateTemplateId, templateController.uploadNewVersion);
 router.get('/templates/:id/versions', validateTemplateId, templateController.getTemplateVersions);

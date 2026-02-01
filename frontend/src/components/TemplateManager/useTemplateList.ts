@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { onTemplateChanged } from '../../realtime/socket';
-import { templateApi, Template, SearchParams } from '../../services/api';
+import { templateApi, Template, SearchParams, triggerBlobDownload } from '../../services/api';
 import type { ApiSearchParams } from './AdvancedSearch';
 
 export interface SearchResults {
@@ -226,8 +226,13 @@ export function useTemplateList() {
     setSearchTriggered(false);
   };
 
-  const handleDownload = (id: string) => {
-    window.open(templateApi.downloadTemplate(id), '_blank');
+  const handleDownload = async (id: string) => {
+    try {
+      const { blob, filename } = await templateApi.fetchDownloadBlob(id);
+      triggerBlobDownload(blob, filename);
+    } catch (err) {
+      console.error('Download failed', err);
+    }
   };
 
   return {

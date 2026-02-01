@@ -190,6 +190,12 @@ export const validateCompareVersionsParams = validate([
   param('version2Id').isMongoId().withMessage('Некорректный ID версии 2'),
 ]);
 
+/** For version download: /templates/:id/versions/:versionId/download */
+export const validateVersionDownloadParams = validate([
+  param('id').isMongoId().withMessage('Некорректный ID шаблона'),
+  param('versionId').isMongoId().withMessage('Некорректный ID версии'),
+]);
+
 // ─── Query validators ───
 
 export const validateSearchQuery = validate([

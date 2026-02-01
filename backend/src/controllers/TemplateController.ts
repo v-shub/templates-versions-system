@@ -84,6 +84,9 @@ export class TemplateController {
   downloadTemplate = (req: Request, res: Response) =>
     templateFileHandlers.downloadTemplate(req, res, this.services);
 
+  downloadVersion = (req: Request, res: Response) =>
+    templateFileHandlers.downloadVersion(req, res, this.services);
+
   previewTemplate = (req: Request, res: Response) =>
     templateFileHandlers.previewTemplate(req, res, this.services);
 

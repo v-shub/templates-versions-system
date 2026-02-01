@@ -2,6 +2,28 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:3000/api';
 
+/** Извлекает имя файла из заголовка Content-Disposition */
+function parseDownloadFilename(contentDisposition: string | undefined): string | null {
+  if (!contentDisposition) return null;
+  // filename*=UTF-8''encoded — RFC 5987
+  const rfc5987 = contentDisposition.match(/filename\*=(?:UTF-8|utf-8)''(.+?)(?:;|$)/i);
+  if (rfc5987) return decodeURIComponent(rfc5987[1].trim());
+  // filename="..." или filename=...
+  const standard = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+  if (standard) return standard[1].replace(/^["']|["']$/g, '').trim() || null;
+  return null;
+}
+
+/** Запускает скачивание blob с указанным именем файла */
+export function triggerBlobDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Базовый клиент для обычных запросов
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -313,14 +335,45 @@ export const templateApi = {
     return response.data;
   },
 
-  // Скачивание файла
+  // Скачивание файла (URL — для обратной совместимости, не передаёт auth)
   downloadTemplate: (id: string) => {
     return `${API_BASE_URL}/templates/${id}/download`;
   },
 
-  // Предпросмотр файла
+  // Загрузка файла шаблона как blob (с учётом JWT)
+  fetchDownloadBlob: async (id: string): Promise<{ blob: Blob; filename: string }> => {
+    const response = await apiClient.get(`/templates/${id}/download`, {
+      responseType: 'blob',
+    });
+    const filename = parseDownloadFilename(response.headers['content-disposition']) || 'download';
+    return { blob: response.data, filename };
+  },
+
+  // Загрузка файла версии как blob (с учётом JWT)
+  fetchVersionDownloadBlob: async (
+    templateId: string,
+    versionId: string
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const response = await apiClient.get(
+      `/templates/${templateId}/versions/${versionId}/download`,
+      { responseType: 'blob' }
+    );
+    const filename =
+      parseDownloadFilename(response.headers['content-disposition']) || 'download';
+    return { blob: response.data, filename };
+  },
+
+  // Предпросмотр файла (возвращает URL для использования в iframe/img — требует auth)
   previewTemplate: (id: string) => {
     return `${API_BASE_URL}/templates/${id}/preview`;
+  },
+
+  // Загрузка preview как blob (с учётом JWT — для authenticated preview)
+  fetchPreviewBlob: async (id: string): Promise<Blob> => {
+    const response = await apiClient.get(`/templates/${id}/preview`, {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
   // Загрузка новой версии
