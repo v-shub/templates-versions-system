@@ -67,11 +67,6 @@ export async function updateTemplateStatus(
     const templateId = req.params.id;
     const { status } = req.body;
 
-    if (!status || !['draft', 'approved', 'deprecated'].includes(status)) {
-      res.status(400).json({ error: 'Valid status is required (draft, approved, deprecated)' });
-      return;
-    }
-
     const template = await Template.findByIdAndUpdate(
       templateId,
       { $set: { 'metadata.status': status, 'metadata.lastModified': new Date() } },

@@ -834,43 +834,7 @@ describe('TemplateController', () => {
       });
     });
 
-    it('should return 400 if version1Id is missing', async () => {
-      mockRequest = {
-        params: { 
-          id: templateId,
-          version2Id
-        }
-      };
-
-      await controller.compareVersions(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ 
-        error: 'Both version1Id and version2Id are required' 
-      });
-    });
-
-    it('should return 400 if version2Id is missing', async () => {
-      mockRequest = {
-        params: { 
-          id: templateId,
-          version1Id
-        }
-      };
-
-      await controller.compareVersions(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ 
-        error: 'Both version1Id and version2Id are required' 
-      });
-    });
+    // Note: version1Id/version2Id validation is handled by express-validator middleware at route level
 
     it('should detect no file content changes when checksums are identical', async () => {
       // Создаем новый шаблон для этого теста
@@ -1065,22 +1029,7 @@ describe('TemplateController', () => {
       expect(Array.isArray(response.data)).toBe(true);
     });
 
-    it('should return 400 if query is missing', async () => {
-      mockRequest = {
-        query: {}
-      };
-
-      await controller.searchTemplates(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        success: false,
-        error: 'Query parameter "q" is required'
-      });
-    });
+    // Note: query "q" validation is handled by express-validator middleware at route level
   });
 });
 });

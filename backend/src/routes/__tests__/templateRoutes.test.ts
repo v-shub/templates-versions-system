@@ -53,6 +53,15 @@ describe('Template Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
     });
+
+    it('should return 400 if query param q is missing (express-validator)', async () => {
+      const response = await request(app)
+        .get('/api/templates/search');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('errors');
+      expect(Array.isArray(response.body.errors)).toBe(true);
+    });
   });
 
   describe('GET /api/health', () => {

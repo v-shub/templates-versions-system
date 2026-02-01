@@ -9,18 +9,6 @@ import { signToken, AuthRequest } from '../middleware/auth';
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
-    if (!email || !password || !name) {
-      res.status(400).json({
-        error: 'Необходимы поля: email, password, name',
-      });
-      return;
-    }
-    if (typeof password !== 'string' || password.length < 6) {
-      res.status(400).json({
-        error: 'Пароль должен быть не менее 6 символов',
-      });
-      return;
-    }
 
     const existing = await User.findOne({ email: email.trim().toLowerCase() });
     if (existing) {
@@ -57,10 +45,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      res.status(400).json({ error: 'Необходимы email и password' });
-      return;
-    }
 
     const user = await User.findOne({ email: email.trim().toLowerCase() }).select('+password');
     if (!user) {
@@ -143,7 +127,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     if (Object.keys(updates).length === 0) {
-      res.status(400).json({ error: 'Не указаны поля для обновления (name, email)' });
+      res.status(400).json({ error: 'Нет изменений для применения' });
       return;
     }
 
@@ -183,15 +167,6 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      res.status(400).json({ error: 'Необходимы currentPassword и newPassword' });
-      return;
-    }
-    if (typeof newPassword !== 'string' || newPassword.length < 6) {
-      res.status(400).json({ error: 'Новый пароль должен быть не менее 6 символов' });
-      return;
-    }
 
     const user = await User.findById(req.user._id).select('+password');
     if (!user) {

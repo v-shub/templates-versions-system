@@ -71,12 +71,20 @@ app.use('*', (req, res) => {
 
 // Error handling middleware (must have 4 args so Express treats it as error handler only)
 function errorHandler(err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction): void {
-  try {
-    logger.error(err instanceof Error ? err.message : 'Internal server error', { type: 'error', err });
-  } catch {
-    // avoid throwing while handling an error
-  }
   if (!res.headersSent) {
+    // Validation errors (e.g. from express-validator passed to next())
+    if (err && typeof err === 'object' && 'array' in err && typeof (err as { array: unknown }).array === 'function') {
+      res.status(400).json({
+        error: 'Ошибка валидации',
+        details: (err as { array: () => unknown[] }).array(),
+      });
+      return;
+    }
+    try {
+      logger.error(err instanceof Error ? err.message : 'Internal server error', { type: 'error', err });
+    } catch {
+      // avoid throwing while handling an error
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 }

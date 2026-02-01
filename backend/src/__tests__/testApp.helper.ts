@@ -2,6 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import { TemplateController } from '../controllers/TemplateController';
 import multer from 'multer';
+import {
+  validateTemplateCreate,
+  validateTemplateUpdate,
+  validateTemplateStatus,
+  validateTemplateId,
+  validateRestoreVersionParams,
+  validateCompareVersionsParams,
+  validateSearchQuery,
+  validateAutocompleteQuery,
+} from '../middleware/validators';
 
 export const createTestApp = () => {
   const app = express();
@@ -16,26 +26,26 @@ export const createTestApp = () => {
   // Настройка multer для тестов
   const upload = multer({ storage: multer.memoryStorage() });
   
-  // Создаем отдельный роутер для тестов
+  // Создаем отдельный роутер для тестов (с validators как в production)
   const testRouter = express.Router();
   
-  // Копируем маршруты из оригинального роутера
-  testRouter.post('/templates', upload.single('file'), templateController.createTemplate);
+  testRouter.post('/templates', upload.single('file'), validateTemplateCreate, templateController.createTemplate);
   testRouter.get('/templates', templateController.getTemplates);
-  testRouter.get('/templates/search', templateController.searchTemplates);
-  testRouter.get('/templates/search/enhanced', templateController.searchTemplatesEnhanced);
-  testRouter.get('/templates/autocomplete', templateController.autocomplete);
+  testRouter.get('/templates/search', validateSearchQuery, templateController.searchTemplates);
+  testRouter.get('/templates/search/enhanced', validateSearchQuery, templateController.searchTemplatesEnhanced);
+  testRouter.get('/templates/autocomplete', validateAutocompleteQuery, templateController.autocomplete);
   testRouter.get('/templates/stats', templateController.getTemplateStats);
-  testRouter.get('/templates/:id', templateController.getTemplate);
-  testRouter.delete('/templates/:id', templateController.deleteTemplate);
-  testRouter.put('/templates/:id', upload.single('file'), templateController.updateTemplate);
-  testRouter.get('/templates/:id/download', templateController.downloadTemplate);
-  testRouter.get('/templates/:id/preview', templateController.previewTemplate);
-  testRouter.post('/templates/:id/versions', upload.single('file'), templateController.uploadNewVersion);
-  testRouter.get('/templates/:id/versions', templateController.getTemplateVersions);
-  testRouter.post('/templates/:id/versions/:versionId/restore', templateController.restoreVersion);
-  testRouter.get('/templates/:id/metadata', templateController.getTemplateMetadata);
-  testRouter.patch('/templates/:id/status', templateController.updateTemplateStatus);
+  testRouter.get('/templates/:id', validateTemplateId, templateController.getTemplate);
+  testRouter.delete('/templates/:id', validateTemplateId, templateController.deleteTemplate);
+  testRouter.put('/templates/:id', upload.single('file'), validateTemplateId, validateTemplateUpdate, templateController.updateTemplate);
+  testRouter.get('/templates/:id/download', validateTemplateId, templateController.downloadTemplate);
+  testRouter.get('/templates/:id/preview', validateTemplateId, templateController.previewTemplate);
+  testRouter.get('/templates/:id/versions/compare/:version1Id/:version2Id', validateCompareVersionsParams, templateController.compareVersions);
+  testRouter.post('/templates/:id/versions/:versionId/restore', validateRestoreVersionParams, templateController.restoreVersion);
+  testRouter.post('/templates/:id/versions', upload.single('file'), validateTemplateId, templateController.uploadNewVersion);
+  testRouter.get('/templates/:id/versions', validateTemplateId, templateController.getTemplateVersions);
+  testRouter.get('/templates/:id/metadata', validateTemplateId, templateController.getTemplateMetadata);
+  testRouter.patch('/templates/:id/status', validateTemplateId, validateTemplateStatus, templateController.updateTemplateStatus);
   testRouter.get('/categories', templateController.getCategories);
   testRouter.get('/departments', templateController.getDepartments);
   testRouter.get('/tags', templateController.getPopularTags);

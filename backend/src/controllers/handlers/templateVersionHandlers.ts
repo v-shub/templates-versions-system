@@ -183,11 +183,6 @@ export async function compareVersions(
   try {
     const { version1Id, version2Id } = req.params;
 
-    if (!version1Id || !version2Id) {
-      res.status(400).json({ error: 'Both version1Id and version2Id are required' });
-      return;
-    }
-
     if (version1Id === version2Id) {
       res.status(400).json({ error: 'Cannot compare a version with itself' });
       return;

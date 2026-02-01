@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import { TemplateController } from '../controllers/TemplateController';
 import multer from 'multer';
-import fs from 'fs';
 import path from 'path';
+import {
+  validateTemplateCreate,
+  validateTemplateUpdate,
+  validateTemplateStatus,
+  validateTemplateId,
+  validateRestoreVersionParams,
+  validateCompareVersionsParams,
+  validateSearchQuery,
+  validateAutocompleteQuery,
+} from '../middleware/validators';
 
 const router = Router();
 const templateController = new TemplateController();
@@ -96,36 +105,36 @@ const handleMulterError = (error: any, req: any, res: any, next: any) => {
 };
 
 // CRUD операции
-router.post('/templates', upload.single('file'), templateController.createTemplate);
-router.put('/templates/:id', upload.single('file'), templateController.updateTemplate);
+router.post('/templates', upload.single('file'), validateTemplateCreate, templateController.createTemplate);
+router.put('/templates/:id', upload.single('file'), validateTemplateId, validateTemplateUpdate, templateController.updateTemplate);
 
 // Поиск
 router.get('/templates', templateController.getTemplates);
-router.get('/templates/search', templateController.searchTemplates); 
-router.get('/templates/search/enhanced', templateController.searchTemplatesEnhanced); 
-router.get('/templates/autocomplete', templateController.autocomplete);
+router.get('/templates/search', validateSearchQuery, templateController.searchTemplates);
+router.get('/templates/search/enhanced', validateSearchQuery, templateController.searchTemplatesEnhanced);
+router.get('/templates/autocomplete', validateAutocompleteQuery, templateController.autocomplete);
 
 // Статистика - ВАЖНО: ДО маршрута с :id
 router.get('/templates/stats', templateController.getTemplateStats);
 
 // Отдельные операции с ID
-router.get('/templates/:id', templateController.getTemplate);
-router.delete('/templates/:id', templateController.deleteTemplate);
+router.get('/templates/:id', validateTemplateId, templateController.getTemplate);
+router.delete('/templates/:id', validateTemplateId, templateController.deleteTemplate);
 
 // Файлы
-router.get('/templates/:id/download', templateController.downloadTemplate);
-router.get('/templates/:id/preview', templateController.previewTemplate);
+router.get('/templates/:id/download', validateTemplateId, templateController.downloadTemplate);
+router.get('/templates/:id/preview', validateTemplateId, templateController.previewTemplate);
 
 // Версии
 // ВАЖНО: более специфичные маршруты должны быть раньше общих
-router.get('/templates/:id/versions/compare/:version1Id/:version2Id', templateController.compareVersions);
-router.post('/templates/:id/versions/:versionId/restore', templateController.restoreVersion);
-router.post('/templates/:id/versions', upload.single('file'), templateController.uploadNewVersion);
-router.get('/templates/:id/versions', templateController.getTemplateVersions);
+router.get('/templates/:id/versions/compare/:version1Id/:version2Id', validateCompareVersionsParams, templateController.compareVersions);
+router.post('/templates/:id/versions/:versionId/restore', validateRestoreVersionParams, templateController.restoreVersion);
+router.post('/templates/:id/versions', upload.single('file'), validateTemplateId, templateController.uploadNewVersion);
+router.get('/templates/:id/versions', validateTemplateId, templateController.getTemplateVersions);
 
 // Метаданные
-router.get('/templates/:id/metadata', templateController.getTemplateMetadata);
-router.patch('/templates/:id/status', templateController.updateTemplateStatus);
+router.get('/templates/:id/metadata', validateTemplateId, templateController.getTemplateMetadata);
+router.patch('/templates/:id/status', validateTemplateId, validateTemplateStatus, templateController.updateTemplateStatus);
 
 // Справочники
 router.get('/categories', templateController.getCategories);

@@ -5,6 +5,17 @@ import { disconnectSocket } from '../realtime/socket';
 const TOKEN_KEY = 'template_manager_token';
 const USER_KEY = 'template_manager_user';
 
+/** Extract error message from axios error; supports both { error } and { errors: [{ msg }] } (express-validator) */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (!err || typeof err !== 'object' || !('response' in err)) return fallback;
+  const data = (err as { response?: { data?: unknown } }).response?.data;
+  if (!data || typeof data !== 'object') return fallback;
+  const d = data as { error?: string; errors?: Array<{ msg?: string }> };
+  if (typeof d.error === 'string') return d.error;
+  if (Array.isArray(d.errors) && d.errors[0]?.msg) return d.errors[0].msg;
+  return fallback;
+}
+
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
@@ -64,10 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authApi.login(email, password);
       persistAuth(data.token, data.user);
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
-        : 'Ошибка входа';
-      setError(msg || 'Ошибка входа');
+      const msg = extractErrorMessage(err, 'Ошибка входа');
+      setError(msg);
       throw err;
     }
   }, [persistAuth]);
@@ -78,10 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authApi.register(email, password, name);
       persistAuth(data.token, data.user);
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
-        : 'Ошибка регистрации';
-      setError(msg || 'Ошибка регистрации');
+      const msg = extractErrorMessage(err, 'Ошибка регистрации');
+      setError(msg);
       throw err;
     }
   }, [persistAuth]);
@@ -99,10 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: updatedUser } = await authApi.updateProfile(data);
       updateUser(updatedUser);
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
-        : 'Ошибка обновления профиля';
-      setError(msg || 'Ошибка обновления профиля');
+      const msg = extractErrorMessage(err, 'Ошибка обновления профиля');
+      setError(msg);
       throw err;
     }
   }, [updateUser]);
@@ -112,10 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authApi.changePassword(currentPassword, newPassword);
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
-        : 'Ошибка смены пароля';
-      setError(msg || 'Ошибка смены пароля');
+      const msg = extractErrorMessage(err, 'Ошибка смены пароля');
+      setError(msg);
       throw err;
     }
   }, []);

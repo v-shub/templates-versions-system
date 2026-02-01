@@ -15,11 +15,6 @@ export async function searchTemplates(
 
     console.log('Search request:', { q, category, department, status, page, limit });
 
-    if (!q) {
-      res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
-      return;
-    }
-
     const searchResults = await services.elasticsearch.searchTemplates(q as string, {
       category: category as string,
       department: department as string,
@@ -80,11 +75,6 @@ export async function searchTemplatesEnhanced(
       fields = 'name,description,tags',
     } = req.query;
 
-    if (!q) {
-      res.status(400).json({ error: 'Query parameter "q" is required' });
-      return;
-    }
-
     const searchFields = (fields as string).split(',').map((f) => f.trim());
 
     const results = await services.elasticsearch.searchTemplatesEnhanced(q as string, {
@@ -110,11 +100,6 @@ export async function autocomplete(
 ): Promise<void> {
   try {
     const { q, field = 'name' } = req.query;
-
-    if (!q) {
-      res.status(400).json({ error: 'Query parameter "q" is required' });
-      return;
-    }
 
     const results = await services.elasticsearch.autocomplete(
       q as string,
