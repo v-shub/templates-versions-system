@@ -83,6 +83,16 @@ export async function createTemplate(
     await services.elasticsearch.indexTemplate(template);
     await services.redis.delPattern('templates:*');
 
+    // WebSocket: notify clients about new template
+    const io = (req as any).app?.get?.('io');
+    if (io) {
+      io.emit('template-changed', {
+        templateId: String(template._id),
+        versionId: String((templateVersion as any)._id),
+        event: 'created',
+      });
+    }
+
     res.status(201).json(template);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -272,6 +282,7 @@ export async function updateTemplate(
     if (req.body.author) updateFields['metadata.author'] = req.body.author;
     if (req.body.status) updateFields['metadata.status'] = req.body.status;
 
+    let savedVersion: any = null;
     if (shouldCreateVersion) {
       const versionFileData = await getVersionFileData(services, newFileData, template);
       const templateVersion = new TemplateVersion({
@@ -286,6 +297,7 @@ export async function updateTemplate(
         },
       });
       await templateVersion.save();
+      savedVersion = templateVersion;
     }
 
     const updatedTemplate = await Template.findByIdAndUpdate(
@@ -299,6 +311,16 @@ export async function updateTemplate(
       await services.redis.del(`template:${templateId}`);
       await services.redis.delPattern('templates:*');
       await services.redis.delPattern(`template_versions:${templateId}:*`);
+
+      // WebSocket: notify clients about template update
+      const io = (req as any).app?.get?.('io');
+      if (io) {
+        io.emit('template-changed', {
+          templateId: String(templateId),
+          versionId: savedVersion ? String(savedVersion._id) : undefined,
+          event: shouldCreateVersion ? 'version_created' : 'updated',
+        });
+      }
     }
 
     res.json(updatedTemplate);
@@ -327,6 +349,15 @@ export async function deleteTemplate(
     await services.redis.del(`template:${templateId}`);
     await services.redis.delPattern('templates:*');
     await services.redis.delPattern(`template_versions:${templateId}:*`);
+
+    // WebSocket: notify clients about template deletion
+    const io = (req as any).app?.get?.('io');
+    if (io) {
+      io.emit('template-changed', {
+        templateId: String(templateId),
+        event: 'deleted',
+      });
+    }
 
     res.json({ message: 'Template deleted successfully' });
   } catch (error: any) {

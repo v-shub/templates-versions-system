@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { authApi, setAuthToken, AuthUser } from '../services/api';
+import { disconnectSocket } from '../realtime/socket';
 
 const TOKEN_KEY = 'template_manager_token';
 const USER_KEY = 'template_manager_user';
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    disconnectSocket();
     persistAuth(null, null);
   }, [persistAuth]);
 

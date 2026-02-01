@@ -87,6 +87,16 @@ export async function updateTemplateStatus(
     await services.redis.del(`template:${templateId}`);
     await services.redis.del(`template_metadata:${templateId}`);
     await services.redis.delPattern('templates:*');
+
+    // WebSocket: notify clients about status update
+    const io = (req as any).app?.get?.('io');
+    if (io) {
+      io.emit('template-changed', {
+        templateId: String(templateId),
+        event: 'updated',
+      });
+    }
+
     res.json(template);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

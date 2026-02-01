@@ -150,6 +150,16 @@ export async function restoreVersion(
       await services.redis.del(`template:${id}`);
       await services.redis.delPattern('templates:*');
       await services.redis.delPattern(`template_versions:${id}:*`);
+
+      // WebSocket: notify clients about version restore
+      const io = (req as any).app?.get?.('io');
+      if (io) {
+        io.emit('template-changed', {
+          templateId: String(id),
+          versionId: String(restorationVersion._id),
+          event: 'version_restored',
+        });
+      }
     }
 
     res.json({

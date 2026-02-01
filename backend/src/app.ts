@@ -1,6 +1,8 @@
+import http from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import { Server as SocketIOServer } from 'socket.io';
 import templateRoutes from './routes/templateRoutes';
 import authRoutes from './routes/authRoutes';
 import { protect } from './middleware/auth';
@@ -8,9 +10,13 @@ import { ElasticsearchService } from './services/ElasticsearchService';
 import { setupSwagger } from './swagger';
 
 const app = express();
+const server = http.createServer(app);
+
+// CORS origins for HTTP and WebSocket
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:3000').split(',').filter(Boolean);
 
 // Middleware (Authorization for JWT)
-app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({ origin: corsOrigins, allowedHeaders: ['Content-Type', 'Authorization'], credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,6 +60,19 @@ app.use((error: any, req: any, res: any, next: any) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Socket.io for real-time template change notifications
+const io = new SocketIOServer(server, {
+  cors: { origin: corsOrigins, credentials: true },
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log('WebSocket client connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('WebSocket client disconnected:', socket.id);
+  });
+});
+
 // Подключение к MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/template-manager';
 mongoose.connect(MONGODB_URI)
@@ -61,9 +80,10 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`WebSocket: ws://localhost:${PORT}`);
 });
 
 export default app;

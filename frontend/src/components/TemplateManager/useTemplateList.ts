@@ -1,9 +1,11 @@
 /**
  * Custom hook for template list: list/search queries, filters, sort, pagination, and handlers.
+ * Subscribes to WebSocket template-changed events for real-time updates.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { onTemplateChanged } from '../../realtime/socket';
 import { templateApi, Template, SearchParams } from '../../services/api';
 import type { ApiSearchParams } from './AdvancedSearch';
 
@@ -37,6 +39,22 @@ export function useTemplateList() {
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Real-time: subscribe to template-changed events and invalidate queries
+  useEffect(() => {
+    const unsubscribe = onTemplateChanged((payload) => {
+      queryClient.invalidateQueries('templates');
+      queryClient.invalidateQueries('search');
+      queryClient.invalidateQueries('categories');
+      queryClient.invalidateQueries('departments');
+      queryClient.invalidateQueries('templateStats');
+      if (payload.templateId) {
+        queryClient.invalidateQueries(['templateVersions', payload.templateId]);
+        queryClient.invalidateQueries(['template', payload.templateId]);
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const listParams: SearchParams = {
     page,
