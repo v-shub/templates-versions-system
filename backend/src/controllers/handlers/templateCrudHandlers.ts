@@ -2,15 +2,20 @@
  * CRUD handlers for templates: create, get list, get one, update, delete.
  */
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import Template from '../../models/Template';
 import TemplateVersion from '../../models/TemplateVersion';
 import type { TemplateControllerServices } from '../types';
 import { parseTags } from './parseTags';
 import logger from '../../logger';
+import type { AuthRequest } from '../../middleware/auth';
+
+function versionAuthor(authReq: AuthRequest, bodyAuthor?: string, fallback?: string): string {
+  return authReq.user?.name ?? bodyAuthor ?? fallback ?? 'system';
+}
 
 export async function createTemplate(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
@@ -33,12 +38,13 @@ export async function createTemplate(
       checksum: fileData.checksum,
     };
 
+    const author = versionAuthor(req, req.body.author, 'system');
     const templateData = {
       ...req.body,
       tags,
       file: templateFileData,
       metadata: {
-        author: req.body.author || 'system',
+        author,
         status: req.body.status || 'draft',
         version: 1,
         lastModified: new Date(),
@@ -65,6 +71,7 @@ export async function createTemplate(
       templateId: template._id,
       version: 1,
       changes: 'Initial version',
+      createdBy: req.user?._id,
       file: {
         originalName: versionFileData.originalName,
         storedName: versionFileData.storedName,
@@ -110,7 +117,7 @@ export async function createTemplate(
 }
 
 export async function getTemplates(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
@@ -151,7 +158,7 @@ export async function getTemplates(
 }
 
 export async function getTemplate(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
@@ -220,7 +227,7 @@ async function getVersionFileData(
 }
 
 export async function updateTemplate(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
@@ -289,6 +296,7 @@ export async function updateTemplate(
       versionChanges = versionChanges || 'Manual version creation';
     }
 
+    const versionAuthorName = versionAuthor(req, req.body.author, template.metadata.author);
     if (req.body.author) updateFields['metadata.author'] = req.body.author;
     if (req.body.status) updateFields['metadata.status'] = req.body.status;
 
@@ -299,9 +307,10 @@ export async function updateTemplate(
         templateId: template._id,
         version: newVersion,
         changes: versionChanges,
+        createdBy: req.user?._id,
         file: versionFileData,
         metadata: {
-          author: req.body.author || template.metadata.author,
+          author: versionAuthorName,
           status: req.body.status || template.metadata.status,
           created: new Date(),
         },
@@ -350,7 +359,7 @@ export async function updateTemplate(
 }
 
 export async function deleteTemplate(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {

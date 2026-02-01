@@ -6,6 +6,7 @@ import { Request, Response } from 'express';
 import Template from '../../models/Template';
 import TemplateVersion from '../../models/TemplateVersion';
 import type { TemplateControllerServices } from '../types';
+import type { AuthRequest } from '../../middleware/auth';
 
 export async function getTemplateVersions(
   req: Request,
@@ -74,8 +75,12 @@ async function getCopiedFileDataForRestore(services: TemplateControllerServices,
   }
 }
 
+function versionAuthor(authReq: AuthRequest, bodyAuthor?: string, fallback?: string): string {
+  return authReq.user?.name ?? bodyAuthor ?? fallback ?? 'system';
+}
+
 export async function restoreVersion(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
@@ -125,10 +130,12 @@ export async function restoreVersion(
       { new: true, runValidators: true }
     );
 
+    const author = versionAuthor(req, req.body.author, currentTemplate.metadata.author);
     const restorationVersion = new TemplateVersion({
       templateId: currentTemplate._id,
       version: newVersionNumber,
       changes: `Restored from version ${versionToRestore.version}: ${versionToRestore.changes}`,
+      createdBy: req.user?._id,
       file: {
         originalName: copiedFileData.originalName,
         storedName: copiedFileData.storedName,
@@ -138,7 +145,7 @@ export async function restoreVersion(
         checksum: copiedFileData.checksum,
       },
       metadata: {
-        author: req.body.author || currentTemplate.metadata.author,
+        author,
         status: versionToRestore.metadata?.status || currentTemplate.metadata.status,
         created: new Date(),
       },

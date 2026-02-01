@@ -100,6 +100,8 @@ export interface TemplateVersion {
   templateId: string;
   version: number;
   changes: string;
+  /** User id who created this version (when created via authenticated request) */
+  createdBy?: string;
   file: {
     originalName: string;
     storedName: string;

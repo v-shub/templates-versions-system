@@ -4,6 +4,8 @@ export interface ITemplateVersion extends Document {
   templateId: mongoose.Types.ObjectId;
   version: number;
   changes: string;
+  /** User who created this version (set when created via authenticated request) */
+  createdBy?: mongoose.Types.ObjectId;
   file: {
     originalName: string;
     storedName: string;
@@ -23,6 +25,7 @@ const TemplateVersionSchema: Schema = new Schema({
   templateId: { type: Schema.Types.ObjectId, ref: 'Template', required: true },
   version: { type: Number, required: true },
   changes: { type: String, required: true },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   file: {
     originalName: { type: String, required: true },
     storedName: { type: String, required: true },
