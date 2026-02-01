@@ -137,7 +137,7 @@ const TemplateVersionHistory: React.FC<TemplateVersionHistoryProps> = ({
       window.open(version.file.url, '_blank');
     } else {
       // Fallback: используем API endpoint для скачивания
-      const downloadUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3000/api'}/templates/${template._id}/versions/${version._id}/download`;
+      const downloadUrl = `${process.env.REACT_APP_API_URL ?? 'http://localhost:3000/api'}/templates/${template._id}/versions/${version._id}/download`;
       window.open(downloadUrl, '_blank');
     }
   };

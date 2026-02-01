@@ -7,8 +7,8 @@ import path from 'path';
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 
-const logLevel = process.env.LOG_LEVEL || 'info';
-const logDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
+const logLevel = process.env.LOG_LEVEL ?? 'info';
+const logDir = process.env.LOG_DIR ?? path.join(process.cwd(), 'logs');
 
 try {
   fs.mkdirSync(logDir, { recursive: true });

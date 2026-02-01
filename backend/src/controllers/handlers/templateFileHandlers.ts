@@ -30,7 +30,7 @@ export async function downloadTemplate(
     }
 
     if (process.env.STORAGE_TYPE === 'local') {
-      const filePath = path.join(process.env.UPLOAD_PATH || './uploads', template.file.storedName);
+      const filePath = path.join(process.env.UPLOAD_PATH ?? './uploads', template.file.storedName);
 
       if (!fs.existsSync(filePath)) {
         res.status(404).json({ error: 'File not found' });
@@ -71,7 +71,7 @@ export async function previewTemplate(
     res.set('Content-Type', template.file.mimeType);
 
     if (process.env.STORAGE_TYPE === 'local') {
-      const filePath = path.join(process.env.UPLOAD_PATH || './uploads', template.file.storedName);
+      const filePath = path.join(process.env.UPLOAD_PATH ?? './uploads', template.file.storedName);
       res.sendFile(path.resolve(filePath));
     } else {
       res.redirect(template.file.url);

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import http from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
@@ -14,8 +15,8 @@ import { metricsMiddleware, getMetrics, getContentType } from './monitoring/metr
 const app = express();
 const server = http.createServer(app);
 
-// CORS origins for HTTP and WebSocket
-const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:3000').split(',').filter(Boolean);
+// CORS origins for HTTP and WebSocket (from .env)
+const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost,http://localhost:3001,http://localhost:3000').split(',').filter(Boolean);
 
 // Prometheus metrics (before routes so every request is timed)
 app.use(metricsMiddleware);
@@ -103,13 +104,14 @@ io.on('connection', (socket) => {
   });
 });
 
-// Подключение к MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/template-manager';
+// Подключение к MongoDB (from .env)
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) throw new Error('MONGODB_URI is required in .env');
 mongoose.connect(MONGODB_URI)
   .then(() => logger.info('Connected to MongoDB'))
   .catch((err) => logger.error('MongoDB connection error', { err }));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ?? '3000';
 server.listen(PORT, () => {
   logger.info('Server is running', {
     type: 'server_start',

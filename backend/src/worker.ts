@@ -13,7 +13,8 @@ import TemplateVersion from './models/TemplateVersion';
 import logger from './logger';
 
 async function main() {
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/template-manager';
+  const MONGODB_URI = process.env.MONGODB_URI;
+  if (!MONGODB_URI) throw new Error('MONGODB_URI is required in .env');
   await mongoose.connect(MONGODB_URI);
   logger.info('Worker connected to MongoDB');
 

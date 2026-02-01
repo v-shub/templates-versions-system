@@ -7,7 +7,7 @@ import { io, Socket } from 'socket.io-client';
 
 /** Get WebSocket server URL from API base URL (strip /api suffix) */
 function getSocketUrl(): string {
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+  const apiUrl = process.env.REACT_APP_API_URL ?? 'http://localhost:3000/api';
   if (apiUrl.startsWith('http')) {
     return apiUrl.replace(/\/api\/?$/, '');
   }

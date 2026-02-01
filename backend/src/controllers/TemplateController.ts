@@ -21,17 +21,17 @@ export class TemplateController {
 
   constructor() {
     const fileStorage = new FileStorageService({
-      type: (process.env.STORAGE_TYPE as 'local' | 's3') || 'local',
+      type: (process.env.STORAGE_TYPE as 'local' | 's3') ?? 'local',
       local: {
-        uploadPath: process.env.UPLOAD_PATH || './uploads',
-        baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+        uploadPath: process.env.UPLOAD_PATH ?? './uploads',
+        baseUrl: process.env.BASE_URL ?? 'http://localhost:3000',
       },
       s3: {
-        bucket: process.env.S3_BUCKET || '',
-        region: process.env.S3_REGION || '',
-        accessKeyId: process.env.S3_ACCESS_KEY || '',
-        secretAccessKey: process.env.S3_SECRET_KEY || '',
-        endpoint: process.env.S3_ENDPOINT || 'https://storage.yandexcloud.net',
+        bucket: process.env.S3_BUCKET ?? '',
+        region: process.env.S3_REGION ?? '',
+        accessKeyId: process.env.S3_ACCESS_KEY ?? '',
+        secretAccessKey: process.env.S3_SECRET_KEY ?? '',
+        endpoint: process.env.S3_ENDPOINT ?? 'https://storage.yandexcloud.net',
       },
     });
 

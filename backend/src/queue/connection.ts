@@ -5,7 +5,8 @@
 
 import IORedis from 'ioredis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_URL;
+if (!redisUrl) throw new Error('REDIS_URL is required in .env');
 
 export const connection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,

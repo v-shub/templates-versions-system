@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-prod';
-const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRE = process.env.JWT_EXPIRE ?? '7d';
+if (!JWT_SECRET) throw new Error('JWT_SECRET is required in .env');
 
 export interface JwtPayload {
   userId: string;
