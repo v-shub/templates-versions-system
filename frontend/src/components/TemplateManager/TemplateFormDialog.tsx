@@ -44,7 +44,6 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
     description: '',
     category: '',
     department: '',
-    author: '',
     status: 'draft',
     tags: [] as string[],
     changes: '',
@@ -69,7 +68,6 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
         description: template.description,
         category: template.category,
         department: template.department,
-        author: template.metadata.author,
         status: template.metadata.status,
         tags: template.tags || [],
         changes: '',
@@ -81,7 +79,6 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
         description: '',
         category: '',
         department: '',
-        author: '',
         status: 'draft',
         tags: [],
         changes: '',
@@ -162,7 +159,7 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
         description: formData.description.trim(),
         category: formData.category,
         department: formData.department,
-        author: formData.author?.trim() || 'system',
+        author: 'system',
         status: formData.status || 'draft',
       };
 
@@ -398,17 +395,7 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
             </FormControl>
           </Grid>
 
-          {/* Автор и статус */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Автор"
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              placeholder="Не указан"
-            />
-          </Grid>
-
+          {/* Статус */}
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel>Статус</InputLabel>
