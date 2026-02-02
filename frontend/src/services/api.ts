@@ -230,6 +230,8 @@ export const templateApi = {
         department: params.department,
         status: params.status,
         q: params.search,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
       },
     });
     return response.data;

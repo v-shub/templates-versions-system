@@ -62,6 +62,8 @@ export function useTemplateList() {
     category: selectedCategory,
     department: selectedDepartment,
     status: selectedStatus,
+    sortBy,
+    sortOrder,
   };
 
   const shouldUseSearch = searchTerm.trim().length > 0 && searchTriggered;
@@ -71,7 +73,7 @@ export function useTemplateList() {
     isLoading: isListLoading,
     error: listError,
   } = useQuery<ListResults>(
-    ['templates', page, selectedCategory, selectedDepartment, selectedStatus],
+    ['templates', page, selectedCategory, selectedDepartment, selectedStatus, sortBy, sortOrder],
     () => templateApi.getTemplates(listParams),
     {
       enabled: !shouldUseSearch,

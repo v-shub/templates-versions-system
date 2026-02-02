@@ -116,14 +116,19 @@ export async function createTemplate(
   }
 }
 
+const SORT_FIELD_MAP: Record<string, string> = {
+  name: 'name',
+  lastModified: 'metadata.lastModified',
+};
+
 export async function getTemplates(
   req: AuthRequest,
   res: Response,
   services: TemplateControllerServices
 ): Promise<void> {
   try {
-    const { page = 1, limit = 10, category, department, status } = req.query;
-    const cacheKey = `templates:${page}:${limit}:${category}:${department}:${status}`;
+    const { page = 1, limit = 10, category, department, status, sortBy = 'lastModified', sortOrder = 'desc' } = req.query;
+    const cacheKey = `templates:${page}:${limit}:${category}:${department}:${status}:${sortBy}:${sortOrder}`;
 
     const cachedData = await services.redis.get(cacheKey);
     if (cachedData) {
@@ -137,10 +142,14 @@ export async function getTemplates(
     if (department) filter.department = department;
     if (status) filter['metadata.status'] = status;
 
+    const sortField = SORT_FIELD_MAP[String(sortBy)] ?? 'metadata.lastModified';
+    const sortDir = String(sortOrder).toLowerCase() === 'asc' ? 1 : -1;
+    const sortOpt: Record<string, 1 | -1> = { [sortField]: sortDir };
+
     const templates = await Template.find(filter)
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
-      .sort({ 'metadata.lastModified': -1 });
+      .sort(sortOpt);
 
     const total = await Template.countDocuments(filter);
     const responseData = {
