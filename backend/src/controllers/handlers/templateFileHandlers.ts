@@ -12,9 +12,27 @@ import * as templateCrudHandlers from './templateCrudHandlers';
 
 const PREVIEWABLE_TYPES = [
   'application/pdf',
-  'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+  'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
   'text/plain', 'text/html',
 ];
+
+const OFFICE_PREVIEW_MIME_PATTERNS = [
+  'wordprocessingml',   // .docx
+  'spreadsheetml',      // .xlsx
+  'presentationml',     // .pptx
+];
+
+function isOfficeMimeType(mimeType: string): boolean {
+  const lower = mimeType.toLowerCase();
+  return OFFICE_PREVIEW_MIME_PATTERNS.some((p) => lower.includes(p));
+}
+
+function isPreviewable(mimeType: string): boolean {
+  return (
+    PREVIEWABLE_TYPES.includes(mimeType) ||
+    isOfficeMimeType(mimeType)
+  );
+}
 
 export async function downloadTemplate(
   req: Request,
@@ -100,7 +118,7 @@ export async function previewTemplate(
       return;
     }
 
-    if (!PREVIEWABLE_TYPES.includes(template.file.mimeType)) {
+    if (!isPreviewable(template.file.mimeType)) {
       res.status(415).json({
         error: 'File type not supported for preview',
         mimeType: template.file.mimeType,
@@ -108,14 +126,31 @@ export async function previewTemplate(
       return;
     }
 
-    res.set('Content-Type', template.file.mimeType);
+    const buffer = await services.fileStorage.readFile(template.file.storedName);
 
-    if (process.env.STORAGE_TYPE === 'local') {
-      const filePath = path.join(process.env.UPLOAD_PATH ?? './uploads', template.file.storedName);
-      res.sendFile(path.resolve(filePath));
-    } else {
-      res.redirect(template.file.url);
+    if (isOfficeMimeType(template.file.mimeType)) {
+      let text: string;
+      try {
+        text = await services.officeService.extractTextFromOfficeDocument(
+          buffer,
+          template.file.mimeType,
+          template.file.originalName
+        );
+      } catch (extractErr: any) {
+        res.status(500).json({
+          error: 'Failed to extract preview from Office document',
+          detail: extractErr.message,
+        });
+        return;
+      }
+      const trimmed = (text || '').trim();
+      res.set('Content-Type', 'text/plain; charset=utf-8');
+      res.send(trimmed || 'No extractable text in this document.');
+      return;
     }
+
+    res.set('Content-Type', template.file.mimeType);
+    res.send(buffer);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

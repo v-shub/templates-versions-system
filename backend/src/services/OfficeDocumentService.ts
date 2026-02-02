@@ -182,14 +182,17 @@ export class OfficeDocumentService {
     }
 
     if (typeof obj === 'object' && obj !== null) {
-      // Проверяем наличие текстового узла
+      // Проверяем наличие текстового узла (_text или #text — в зависимости от парсера)
       if (obj._text) {
-        textParts.push(obj._text);
+        textParts.push(String(obj._text));
+      }
+      if (obj['#text']) {
+        textParts.push(String(obj['#text']));
       }
 
       // Рекурсивно обходим все свойства
       for (const key in obj) {
-        if (key === '_text' || key.startsWith('@_')) {
+        if (key === '_text' || key === '#text' || key.startsWith('@_')) {
           continue;
         }
 
@@ -200,6 +203,10 @@ export class OfficeDocumentService {
             if (extracted) {
               textParts.push(extracted);
             }
+          }
+        } else if (typeof value === 'string') {
+          if (value.trim()) {
+            textParts.push(value.trim());
           }
         } else if (typeof value === 'object' && value !== null) {
           const extracted = this.extractTextFromXml(value);

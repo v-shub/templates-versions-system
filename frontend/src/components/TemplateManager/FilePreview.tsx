@@ -66,17 +66,22 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
       setTextContent(null);
 
       const mimeType = template.file.mimeType.toLowerCase();
+      const isOffice =
+        mimeType.includes('wordprocessingml') ||
+        mimeType.includes('spreadsheetml') ||
+        mimeType.includes('presentationml');
       const isPreviewable =
         mimeType.includes('pdf') ||
         mimeType.includes('image') ||
-        mimeType.includes('text');
+        mimeType.includes('text') ||
+        isOffice;
 
       if (!isPreviewable) {
         throw new Error('Предпросмотр недоступен для этого типа файла');
       }
 
       const blob = await templateApi.fetchPreviewBlob(template._id);
-      if (mimeType.includes('text')) {
+      if (mimeType.includes('text') || isOffice) {
         const text = await blob.text();
         setTextContent(text);
         setPreviewUrl(null);
@@ -157,7 +162,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
       );
     }
 
-    if (mimeType.includes('text')) {
+    const isOffice =
+      mimeType.includes('wordprocessingml') ||
+      mimeType.includes('spreadsheetml') ||
+      mimeType.includes('presentationml');
+    if (mimeType.includes('text') || isOffice) {
       return (
         <Box sx={{ height: '70vh', overflow: 'auto', p: 2, bgcolor: 'grey.50' }}>
           <pre style={{ margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
