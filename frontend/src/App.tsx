@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ReactQueryProvider } from './providers/ReactQueryProvider';
@@ -55,6 +55,17 @@ function AppContent() {
   const { token, user, loading, logout } = useAuth();
   const [authView, setAuthView] = useState<AuthView>('login');
   const [mainView, setMainView] = useState<MainView>('dashboard');
+  const prevTokenRef = useRef<boolean>(!!token);
+
+  // Always go to TemplateManager (dashboard) after login
+  useEffect(() => {
+    const hadToken = prevTokenRef.current;
+    const hasToken = !!token;
+    prevTokenRef.current = hasToken;
+    if (!hadToken && hasToken) {
+      setMainView('dashboard');
+    }
+  }, [token]);
 
   if (loading) {
     return (
