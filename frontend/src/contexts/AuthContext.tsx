@@ -31,6 +31,7 @@ interface AuthContextValue extends AuthState {
   updateUser: (user: AuthUser) => void;
   updateProfile: (data: { name?: string; email?: string }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -123,6 +124,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const deleteAccount = useCallback(async (password: string) => {
+    setError(null);
+    try {
+      await authApi.deleteAccount(password);
+      logout();
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, 'Ошибка удаления аккаунта');
+      setError(msg);
+      throw err;
+    }
+  }, [logout]);
+
   useEffect(() => {
     const init = async () => {
       const storedToken = localStorage.getItem(TOKEN_KEY);
@@ -156,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUser,
     updateProfile,
     changePassword,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

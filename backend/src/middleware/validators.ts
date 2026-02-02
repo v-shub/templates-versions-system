@@ -165,6 +165,12 @@ export const validateChangePassword = validate([
     .withMessage('Новый пароль должен быть не менее 6 символов'),
 ]);
 
+export const validateDeleteAccount = validate([
+  body('password')
+    .notEmpty()
+    .withMessage('Пароль обязателен для подтверждения удаления'),
+]);
+
 // ─── Param validators (MongoDB ObjectId) ───
 
 export const validateMongoIdParam = (paramName: string) =>

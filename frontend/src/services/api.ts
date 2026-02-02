@@ -81,6 +81,12 @@ export const authApi = {
     });
     return response.data;
   },
+  deleteAccount: async (password: string): Promise<{ success: boolean; message?: string }> => {
+    const response = await apiClient.delete<{ success: boolean; message?: string }>('/auth/me', {
+      data: { password },
+    });
+    return response.data;
+  },
 };
 
 // Интерфейсы

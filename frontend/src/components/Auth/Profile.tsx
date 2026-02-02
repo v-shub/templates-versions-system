@@ -7,9 +7,13 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { Person as PersonIcon, Lock as LockIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Person as PersonIcon, Lock as LockIcon, ArrowBack as ArrowBackIcon, DeleteForever as DeleteForeverIcon } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ProfileProps {
@@ -17,7 +21,7 @@ interface ProfileProps {
 }
 
 export default function Profile({ onBack }: ProfileProps) {
-  const { user, updateProfile, changePassword, error, clearError } = useAuth();
+  const { user, updateProfile, changePassword, deleteAccount, error, clearError } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [profileSubmitting, setProfileSubmitting] = useState(false);
@@ -28,6 +32,10 @@ export default function Profile({ onBack }: ProfileProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -73,6 +81,27 @@ export default function Profile({ onBack }: ProfileProps) {
   };
 
   const passwordMismatch = Boolean(newPassword && confirmPassword && newPassword !== confirmPassword);
+
+  const handleDeleteAccountClick = () => setDeleteDialogOpen(true);
+  const handleDeleteDialogClose = () => {
+    if (!deleteSubmitting) {
+      setDeleteDialogOpen(false);
+      setDeletePassword('');
+    }
+  };
+  const handleDeleteAccountConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    setDeleteSubmitting(true);
+    try {
+      await deleteAccount(deletePassword);
+      handleDeleteDialogClose();
+    } catch {
+      // error set in context
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
 
   return (
     <Box sx={{ py: 4, maxWidth: 480, mx: 'auto', px: 2 }}>
@@ -193,6 +222,57 @@ export default function Profile({ onBack }: ProfileProps) {
           </Button>
         </form>
       </Paper>
+
+      {/* Delete account */}
+      <Paper elevation={2} sx={{ p: 3, mt: 3, border: '1px solid', borderColor: 'error.light' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <DeleteForeverIcon color="error" />
+          <Typography variant="h6" color="error.main">
+            Удалить аккаунт
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Это действие необратимо. Все данные вашего аккаунта будут удалены.
+        </Typography>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleDeleteAccountClick}
+          disabled={deleteSubmitting}
+        >
+          Удалить аккаунт
+        </Button>
+      </Paper>
+
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose} maxWidth="xs" fullWidth>
+        <form onSubmit={handleDeleteAccountConfirm}>
+          <DialogTitle>Удалить аккаунт?</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Для подтверждения введите ваш пароль. После удаления войти с этим аккаунтом будет невозможно.
+            </DialogContentText>
+            <TextField
+              fullWidth
+              label="Пароль"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              error={!!error}
+              helperText={error}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleDeleteDialogClose} disabled={deleteSubmitting}>
+              Отмена
+            </Button>
+            <Button type="submit" color="error" variant="contained" disabled={deleteSubmitting || !deletePassword}>
+              {deleteSubmitting ? <CircularProgress size={24} /> : 'Удалить навсегда'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Box>
   );
 }

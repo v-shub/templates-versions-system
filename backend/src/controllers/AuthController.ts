@@ -189,3 +189,35 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     res.status(500).json({ error: 'Ошибка при смене пароля' });
   }
 };
+
+/**
+ * DELETE /auth/me
+ * Удаление аккаунта текущего пользователя (требует пароль в теле запроса).
+ */
+export const deleteAccount = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Требуется авторизация' });
+      return;
+    }
+    const { password } = req.body;
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      res.status(404).json({ error: 'Пользователь не найден' });
+      return;
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      res.status(401).json({ error: 'Неверный пароль' });
+      return;
+    }
+
+    await User.findByIdAndDelete(req.user._id);
+    res.json({ success: true, message: 'Аккаунт успешно удалён' });
+  } catch (err) {
+    console.error('Delete account error:', err);
+    res.status(500).json({ error: 'Ошибка при удалении аккаунта' });
+  }
+};
