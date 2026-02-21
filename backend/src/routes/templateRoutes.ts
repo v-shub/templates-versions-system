@@ -133,6 +133,11 @@ router.get(
   validateVersionDownloadParams,
   templateController.downloadVersion
 );
+router.get(
+  '/templates/:id/versions/:versionId/preview',
+  validateVersionDownloadParams,
+  templateController.previewVersion
+);
 router.post('/templates/:id/versions/:versionId/restore', validateRestoreVersionParams, templateController.restoreVersion);
 router.post('/templates/:id/versions', upload.single('file'), validateTemplateId, templateController.uploadNewVersion);
 router.get('/templates/:id/versions', validateTemplateId, templateController.getTemplateVersions);

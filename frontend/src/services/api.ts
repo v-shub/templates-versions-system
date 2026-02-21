@@ -376,12 +376,22 @@ export const templateApi = {
     return `${API_BASE_URL}/templates/${id}/preview`;
   },
 
-  // Загрузка preview как blob (с учётом JWT — для authenticated preview)
-  fetchPreviewBlob: async (id: string): Promise<Blob> => {
+  // Загрузка preview как blob + content-type для правильного отображения (PDF/HTML/изображение/текст)
+  fetchPreviewBlob: async (id: string): Promise<{ blob: Blob; contentType: string }> => {
     const response = await apiClient.get(`/templates/${id}/preview`, {
       responseType: 'blob',
     });
-    return response.data;
+    const contentType = (response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    return { blob: response.data, contentType };
+  },
+
+  fetchVersionPreviewBlob: async (templateId: string, versionId: string): Promise<{ blob: Blob; contentType: string }> => {
+    const response = await apiClient.get(
+      `/templates/${templateId}/versions/${versionId}/preview`,
+      { responseType: 'blob' }
+    );
+    const contentType = (response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    return { blob: response.data, contentType };
   },
 
   // Загрузка новой версии

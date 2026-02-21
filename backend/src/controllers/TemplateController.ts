@@ -90,6 +90,9 @@ export class TemplateController {
   previewTemplate = (req: Request, res: Response) =>
     templateFileHandlers.previewTemplate(req, res, this.services);
 
+  previewVersion = (req: Request, res: Response) =>
+    templateFileHandlers.previewVersion(req, res, this.services);
+
   uploadNewVersion = (req: Request, res: Response) =>
     templateFileHandlers.uploadNewVersion(req, res, this.services);
 

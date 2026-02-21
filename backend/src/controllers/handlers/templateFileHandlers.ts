@@ -12,26 +12,18 @@ import * as templateCrudHandlers from './templateCrudHandlers';
 
 const PREVIEWABLE_TYPES = [
   'application/pdf',
-  'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+  'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
   'text/plain', 'text/html',
 ];
 
-const OFFICE_PREVIEW_MIME_PATTERNS = [
-  'wordprocessingml',   // .docx
-  'spreadsheetml',      // .xlsx
-  'presentationml',     // .pptx
-];
+const OFFICE_MIME_PATTERNS = ['wordprocessingml', 'spreadsheetml', 'presentationml'];
 
 function isOfficeMimeType(mimeType: string): boolean {
-  const lower = mimeType.toLowerCase();
-  return OFFICE_PREVIEW_MIME_PATTERNS.some((p) => lower.includes(p));
+  return OFFICE_MIME_PATTERNS.some((p) => mimeType.toLowerCase().includes(p));
 }
 
-function isPreviewable(mimeType: string): boolean {
-  return (
-    PREVIEWABLE_TYPES.includes(mimeType) ||
-    isOfficeMimeType(mimeType)
-  );
+function isPreviewableMimeType(mimeType: string): boolean {
+  return PREVIEWABLE_TYPES.includes(mimeType) || isOfficeMimeType(mimeType);
 }
 
 export async function downloadTemplate(
@@ -118,7 +110,7 @@ export async function previewTemplate(
       return;
     }
 
-    if (!isPreviewable(template.file.mimeType)) {
+    if (!isPreviewableMimeType(template.file.mimeType)) {
       res.status(415).json({
         error: 'File type not supported for preview',
         mimeType: template.file.mimeType,
@@ -129,27 +121,58 @@ export async function previewTemplate(
     const buffer = await services.fileStorage.readFile(template.file.storedName);
 
     if (isOfficeMimeType(template.file.mimeType)) {
-      let text: string;
-      try {
-        text = await services.officeService.extractTextFromOfficeDocument(
-          buffer,
-          template.file.mimeType,
-          template.file.originalName
-        );
-      } catch (extractErr: any) {
-        res.status(500).json({
-          error: 'Failed to extract preview from Office document',
-          detail: extractErr.message,
-        });
-        return;
-      }
-      const trimmed = (text || '').trim();
-      res.set('Content-Type', 'text/plain; charset=utf-8');
-      res.send(trimmed || 'No extractable text in this document.');
+      const html = await services.officeService.convertOfficeToHtml(
+        buffer,
+        template.file.mimeType,
+        template.file.originalName
+      );
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
       return;
     }
 
     res.set('Content-Type', template.file.mimeType);
+    res.send(buffer);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function previewVersion(
+  req: Request,
+  res: Response,
+  services: TemplateControllerServices
+): Promise<void> {
+  try {
+    const templateId = req.params.id;
+    const versionId = req.params.versionId;
+    const version = await TemplateVersion.findOne({ _id: versionId, templateId });
+
+    if (!version) {
+      res.status(404).json({ error: 'Version not found' });
+      return;
+    }
+
+    const file = version.file;
+    if (!isPreviewableMimeType(file.mimeType)) {
+      res.status(415).json({ error: 'File type not supported for preview', mimeType: file.mimeType });
+      return;
+    }
+
+    const buffer = await services.fileStorage.readFile(file.storedName);
+
+    if (isOfficeMimeType(file.mimeType)) {
+      const html = await services.officeService.convertOfficeToHtml(
+        buffer,
+        file.mimeType,
+        file.originalName
+      );
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+      return;
+    }
+
+    res.set('Content-Type', file.mimeType);
     res.send(buffer);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -47,11 +47,19 @@ interface VersionSummary {
   file: { originalName: string; mimeType: string; size: number; checksum?: string };
 }
 
+export type ExtractableFileType = 'text' | 'office' | 'pdf';
+
 interface FileContentComparison {
   contentChanged: boolean;
   isTextFile: boolean;
   fileType: string | null;
+  /** When comparing different file types (e.g. DOCX vs PDF) */
+  fileType1?: ExtractableFileType | null;
+  fileType2?: ExtractableFileType | null;
   diff: Array<{ value: string; added: boolean; removed: boolean }> | null;
+  /** Extracted text from each version for symbol-level diff in UI */
+  text1: string | null;
+  text2: string | null;
   error: string | null;
 }
 
@@ -167,6 +175,47 @@ export class VersionCompareService {
     return out;
   }
 
+  /** Resolve extractable type for a single file (by mime and name). */
+  private getExtractableType(mimeType: string, originalName: string): ExtractableFileType | null {
+    const m = mimeType.toLowerCase();
+    const n = originalName.toLowerCase();
+    if (
+      m.includes('wordprocessingml') ||
+      m.includes('spreadsheetml') ||
+      m.includes('presentationml') ||
+      n.endsWith('.docx') ||
+      n.endsWith('.xlsx') ||
+      n.endsWith('.pptx')
+    ) {
+      return 'office';
+    }
+    if (m.includes('pdf') || n.endsWith('.pdf')) return 'pdf';
+    if (
+      TEXT_MIME_TYPES.includes(mimeType) ||
+      mimeType.startsWith('text/') ||
+      TEXT_EXTENSIONS.test(originalName)
+    ) {
+      return 'text';
+    }
+    return null;
+  }
+
+  /** Extract text from a single file buffer based on its type. */
+  private async extractTextForVersion(
+    buffer: Buffer,
+    mimeType: string,
+    originalName: string,
+    type: ExtractableFileType
+  ): Promise<string> {
+    if (type === 'office') {
+      return this.officeService.extractTextFromOfficeDocument(buffer, mimeType, originalName);
+    }
+    if (type === 'pdf') {
+      return this.pdfService.extractTextFromPdf(buffer);
+    }
+    return buffer.toString('utf8');
+  }
+
   private async buildFileContentComparison(
     v1: ITemplateVersion & Document,
     v2: ITemplateVersion & Document
@@ -176,6 +225,8 @@ export class VersionCompareService {
       isTextFile: false,
       fileType: null,
       diff: null,
+      text1: null,
+      text2: null,
       error: null,
     };
 
@@ -185,67 +236,41 @@ export class VersionCompareService {
 
       if (!fileContentChanged) return result;
 
-      const mimeType1 = v1.file.mimeType.toLowerCase();
-      const mimeType2 = v2.file.mimeType.toLowerCase();
-      const fileName1 = v1.file.originalName.toLowerCase();
-      const fileName2 = v2.file.originalName.toLowerCase();
+      const type1 = this.getExtractableType(v1.file.mimeType, v1.file.originalName);
+      const type2 = this.getExtractableType(v2.file.mimeType, v2.file.originalName);
+      const canExtractEither = type1 !== null || type2 !== null;
 
-      const isOfficeDoc =
-        mimeType1.includes('wordprocessingml') ||
-        mimeType1.includes('spreadsheetml') ||
-        mimeType1.includes('presentationml') ||
-        mimeType2.includes('wordprocessingml') ||
-        mimeType2.includes('spreadsheetml') ||
-        mimeType2.includes('presentationml') ||
-        fileName1.endsWith('.docx') ||
-        fileName1.endsWith('.xlsx') ||
-        fileName1.endsWith('.pptx') ||
-        fileName2.endsWith('.docx') ||
-        fileName2.endsWith('.xlsx') ||
-        fileName2.endsWith('.pptx');
+      result.fileType1 = type1 ?? undefined;
+      result.fileType2 = type2 ?? undefined;
+      result.isTextFile = canExtractEither;
 
-      const isPdf =
-        mimeType1.includes('pdf') ||
-        mimeType2.includes('pdf') ||
-        fileName1.endsWith('.pdf') ||
-        fileName2.endsWith('.pdf');
-
-      const isTextFile =
-        TEXT_MIME_TYPES.includes(v1.file.mimeType) ||
-        TEXT_MIME_TYPES.includes(v2.file.mimeType) ||
-        v1.file.mimeType.startsWith('text/') ||
-        v2.file.mimeType.startsWith('text/') ||
-        TEXT_EXTENSIONS.test(v1.file.originalName) ||
-        TEXT_EXTENSIONS.test(v2.file.originalName);
-
-      result.isTextFile = isTextFile || isOfficeDoc || isPdf;
-
-      if (isOfficeDoc || isPdf || isTextFile) {
+      if (canExtractEither) {
         try {
-          const buffer1 = await this.fileStorage.readFile(v1.file.storedName);
-          const buffer2 = await this.fileStorage.readFile(v2.file.storedName);
+          const [buffer1, buffer2] = await Promise.all([
+            this.fileStorage.readFile(v1.file.storedName),
+            this.fileStorage.readFile(v2.file.storedName),
+          ]);
 
-          let content1: string;
-          let content2: string;
+          const extract1 =
+            type1 !== null
+              ? this.extractTextForVersion(
+                  buffer1,
+                  v1.file.mimeType,
+                  v1.file.originalName,
+                  type1
+                )
+              : Promise.resolve('');
+          const extract2 =
+            type2 !== null
+              ? this.extractTextForVersion(
+                  buffer2,
+                  v2.file.mimeType,
+                  v2.file.originalName,
+                  type2
+                )
+              : Promise.resolve('');
 
-          if (isOfficeDoc) {
-            content1 = await this.officeService.extractTextFromOfficeDocument(
-              buffer1,
-              v1.file.mimeType,
-              v1.file.originalName
-            );
-            content2 = await this.officeService.extractTextFromOfficeDocument(
-              buffer2,
-              v2.file.mimeType,
-              v2.file.originalName
-            );
-          } else if (isPdf) {
-            content1 = await this.pdfService.extractTextFromPdf(buffer1);
-            content2 = await this.pdfService.extractTextFromPdf(buffer2);
-          } else {
-            content1 = buffer1.toString('utf8');
-            content2 = buffer2.toString('utf8');
-          }
+          const [content1, content2] = await Promise.all([extract1, extract2]);
 
           const diff = diffLines(content1, content2);
           result.diff = diff.map((part: any) => ({
@@ -253,10 +278,14 @@ export class VersionCompareService {
             added: part.added || false,
             removed: part.removed || false,
           }));
+          result.text1 = content1;
+          result.text2 = content2;
 
-          if (isOfficeDoc) result.fileType = 'office';
-          else if (isPdf) result.fileType = 'pdf';
-          else result.fileType = 'text';
+          if (type1 === type2) {
+            result.fileType = type1;
+          } else {
+            result.fileType = type1 ?? type2 ?? 'text';
+          }
         } catch (readError: any) {
           result.isTextFile = false;
           result.error = `Could not extract text: ${readError.message}`;
