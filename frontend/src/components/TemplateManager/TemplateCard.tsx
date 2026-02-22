@@ -54,6 +54,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     <Card
       sx={{
         height: '100%',
+        minHeight: '22rem',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s',
@@ -63,23 +64,73 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         },
       }}
     >
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          display: 'grid',
+          gridTemplateRows: '3.5rem 4.5rem auto auto auto',
+          gridTemplateColumns: '1fr',
+          gap: '0.75rem 0',
+          alignContent: 'start',
+        }}
+      >
+        <Box
+          sx={{
+            gridRow: 1,
+            height: '3.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            mb: 2,
+            overflow: 'hidden',
+            minWidth: 0,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: 1,
+              minWidth: 0,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
             {getFileIcon(templateFile?.mimeType)} {templateName}
           </Typography>
-          <IconButton size="small" onClick={(e) => onMenuOpen(e, template)}>
+          <IconButton
+            size="small"
+            onClick={(e) => onMenuOpen(e, template)}
+            sx={{ flexShrink: 0 }}
+          >
             <MoreVertIcon />
           </IconButton>
         </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {templateDescription.length > 100
-            ? `${templateDescription.substring(0, 100)}...`
-            : templateDescription}
-        </Typography>
+        <Box
+          sx={{
+            gridRow: 2,
+            height: '4.5rem',
+            mb: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {templateDescription}
+          </Typography>
+        </Box>
 
-        <Stack spacing={1} sx={{ mb: 2 }}>
+        <Stack spacing={1} sx={{ mb: 2, gridRow: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CategoryIcon fontSize="small" color="action" />
             <Typography variant="caption">{templateCategory}</Typography>
@@ -102,7 +153,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         </Stack>
 
         {templateTags.length > 0 && (
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2, gridRow: 4 }}>
             {templateTags.slice(0, 3).map((tag, index) => (
               <Chip
                 key={tag || index}
@@ -121,7 +172,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gridRow: 5 }}>
           <Chip
             label={templateMetadata?.status || 'draft'}
             size="small"

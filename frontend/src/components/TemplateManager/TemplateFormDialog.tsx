@@ -31,6 +31,10 @@ interface TemplateFormDialogProps {
   template?: Template | null;
 }
 
+// Только Office (DOCX, XLSX, PPTX) + PDF
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.pptx'];
+const ALLOWED_EXTENSIONS_LABEL = ALLOWED_EXTENSIONS.map((ext) => ext.slice(1).toUpperCase()).join(', ') + ' (макс. 10MB)';
+
 const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
   open,
   onClose,
@@ -239,37 +243,20 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
         return;
       }
 
-      // Проверка типа файла
+      // Только PDF + Office (DOCX, XLSX, PPTX)
       const allowedTypes = [
         'application/pdf',
-        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'text/html',
-        'text/csv',
-        'application/rtf',
-        'image/jpeg',
-        'image/jpg',
-        'image/png',
-        'image/gif',
-        'image/bmp',
-        'image/webp',
-        'image/svg+xml',
-        'application/json',
-        'application/xml'
       ];
 
       if (!allowedTypes.includes(selectedFile.type)) {
         console.warn('File type not in allowed list, checking extension');
-        const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.html', '.csv', '.rtf', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.json', '.xml'];
         const extension = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
         
-        if (!allowedExtensions.includes(extension)) {
-          setErrors({ ...errors, file: `Недопустимый тип файла. Разрешены: ${allowedExtensions.join(', ')}` });
+        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+          setErrors({ ...errors, file: `Недопустимый тип файла. Разрешены: ${ALLOWED_EXTENSIONS.join(', ')}` });
           return;
         }
       }
@@ -545,7 +532,7 @@ const TemplateFormDialog: React.FC<TemplateFormDialogProps> = ({
                     Нажмите для загрузки файла
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, JPG, PNG (макс. 10MB)
+                    {ALLOWED_EXTENSIONS_LABEL}
                   </Typography>
                 </>
               )}

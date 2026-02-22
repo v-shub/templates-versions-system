@@ -25,66 +25,24 @@ const upload = multer({
     files: 1
   },
   fileFilter: (req, file, cb) => {
-    // Разрешенные MIME-типы
+    // Только Office (DOCX, XLSX, PPTX) + PDF
     const allowedTypes = [
-      // Документы
       'application/pdf',
-      'application/msword', // .doc
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-      'application/vnd.ms-excel', // .xls
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-      'application/vnd.ms-powerpoint', // .ppt
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-      
-      // Текстовые файлы
-      'text/plain',
-      'text/html',
-      'text/csv',
-      'application/rtf',
-      
-      // Изображения (для превью)
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/bmp',
-      'image/webp',
-      'image/svg+xml',
-      
-      // Архивы
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
-      'application/x-tar',
-      'application/gzip',
-      
-      // Другие
-      'application/json',
-      'application/xml'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     ];
-    
+
+    const allowedExtensions = ['.pdf', '.docx', '.xlsx', '.pptx'];
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      console.log('Invalid file type:', file.mimetype, 'Original name:', file.originalname);
-      
-      // Дополнительная проверка по расширению файла
-      const allowedExtensions = [
-        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-        '.txt', '.html', '.csv', '.rtf',
-        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg',
-        '.zip', '.rar', '.7z', '.tar', '.gz',
-        '.json', '.xml'
-      ];
-      
       const extension = path.extname(file.originalname).toLowerCase();
-      
       if (allowedExtensions.includes(extension)) {
-        // Разрешаем файл даже если MIME-тип не опознан
-        console.log('File allowed by extension:', extension);
         cb(null, true);
       } else {
-        cb(new Error(`Invalid file type: ${file.mimetype}. Allowed types: ${allowedExtensions.join(', ')}`));
+        cb(new Error(`Invalid file type: ${file.mimetype}. Allowed: ${allowedExtensions.join(', ')}`));
       }
     }
   }
