@@ -13,36 +13,111 @@ import { FolderSpecial as TemplateIcon, Logout as LogoutIcon, Person as PersonIc
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#1e3a5f',
+      light: '#2d4a6f',
+      dark: '#152a47',
+      contrastText: '#fff',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#0d9488',
+      light: '#14b8a6',
+      dark: '#0f766e',
+      contrastText: '#fff',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#f1f5f9',
+      paper: '#ffffff',
     },
+    success: { main: '#059669' },
+    warning: { main: '#d97706' },
+    error: { main: '#dc2626' },
+    info: { main: '#0284c7' },
+  },
+  shape: {
+    borderRadius: 12,
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 500,
-    },
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    h1: { fontSize: '2.25rem', fontWeight: 700, letterSpacing: '-0.02em' },
+    h2: { fontSize: '1.875rem', fontWeight: 600, letterSpacing: '-0.01em' },
+    h3: { fontSize: '1.5rem', fontWeight: 600 },
+    h4: { fontSize: '1.25rem', fontWeight: 600 },
+    h5: { fontSize: '1.125rem', fontWeight: 600 },
+    h6: { fontSize: '1rem', fontWeight: 600 },
+    button: { fontWeight: 600, textTransform: 'none' as const },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: { backgroundColor: '#f1f5f9' },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          background: 'linear-gradient(135deg, #1e3a5f 0%, #152a47 100%)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {
-          transition: 'transform 0.2s, box-shadow 0.2s',
+          borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           '&:hover': {
             transform: 'translateY(-4px)',
-            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+            boxShadow: '0 12px 24px rgba(30,58,95,0.12)',
           },
         },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+        contained: {
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          '&:hover': { boxShadow: '0 4px 12px rgba(30,58,95,0.25)' },
+        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: 'outlined' as const,
+        size: 'medium' as const,
+      },
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 10,
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#1e3a5f',
+            },
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { borderRadius: 8 },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: { textTransform: 'none', fontWeight: 600 },
       },
     },
   },
@@ -150,17 +225,17 @@ function AppContent() {
       <Box
         component="footer"
         sx={{
-          py: 3,
+          py: 2.5,
           px: 2,
           mt: 'auto',
-          backgroundColor: (theme) => theme.palette.grey[100],
-          borderTop: (theme) => `1px solid ${theme.palette.grey[300]}`,
+          backgroundColor: 'rgba(30,58,95,0.04)',
+          borderTop: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Container maxWidth="xl">
           <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} Template Management System.
-            Все права защищены.
+            © {new Date().getFullYear()} Template Management System. Все права защищены.
           </Typography>
         </Container>
       </Box>

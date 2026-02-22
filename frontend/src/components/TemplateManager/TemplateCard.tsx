@@ -57,11 +57,8 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         minHeight: '22rem',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'transform 0.2s',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
-        },
+        border: '1px solid',
+        borderColor: 'divider',
       }}
     >
       <CardContent

@@ -45,11 +45,26 @@ export default function Login({ onNavigateToRegister }: LoginProps) {
         alignItems: 'center',
         justifyContent: 'center',
         py: 4,
+        background: 'linear-gradient(160deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%)',
       }}
     >
-      <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
-        <Typography variant="h5" component="h1" gutterBottom align="center">
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          maxWidth: 420,
+          width: '100%',
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 4px 24px rgba(30,58,95,0.08)',
+        }}
+      >
+        <Typography variant="h5" component="h1" gutterBottom align="center" fontWeight={700} color="primary.main">
           Вход
+        </Typography>
+        <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+          Войдите в систему управления шаблонами
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={clearError}>
@@ -83,14 +98,14 @@ export default function Login({ onNavigateToRegister }: LoginProps) {
             variant="contained"
             size="large"
             disabled={submitting}
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
           >
-            {submitting ? <CircularProgress size={24} /> : 'Войти'}
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Войти'}
           </Button>
         </form>
-        <Typography variant="body2" align="center">
+        <Typography variant="body2" align="center" color="text.secondary">
           Нет аккаунта?{' '}
-          <Link component="button" variant="body2" onClick={onNavigateToRegister} sx={{ cursor: 'pointer' }}>
+          <Link component="button" variant="body2" onClick={onNavigateToRegister} sx={{ cursor: 'pointer', fontWeight: 600 }}>
             Зарегистрироваться
           </Link>
         </Typography>

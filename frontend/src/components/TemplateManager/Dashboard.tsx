@@ -51,7 +51,7 @@ import {
   Line,
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#1e3a5f', '#0d9488', '#d97706', '#0284c7', '#64748b'];
 
 const Dashboard: React.FC = () => {
   const {
@@ -92,12 +92,11 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box>
-      {/* Заголовок и кнопка обновления */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h5" fontWeight="bold">
+        <Typography variant="h5" fontWeight={700} color="primary.main">
           Статистика шаблонов
         </Typography>
-        <IconButton onClick={() => refetch()} color="primary">
+        <IconButton onClick={() => refetch()} color="primary" size="medium" aria-label="Обновить">
           <RefreshIcon />
         </IconButton>
       </Box>
@@ -228,8 +227,8 @@ const Dashboard: React.FC = () => {
         {/* Распределение по статусам */}
         {statusChartData.length > 0 ? (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Распределение по статусам
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
                   Всего: {totalStatusCount} шаблонов
@@ -304,8 +303,8 @@ const Dashboard: React.FC = () => {
           </Grid>
         ) : (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Распределение по статусам
               </Typography>
               <Alert severity="warning">
@@ -318,8 +317,8 @@ const Dashboard: React.FC = () => {
         {/* Активность по месяцам - показываем только если есть данные */}
         {activityData.length > 0 ? (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Активность по месяцам
               </Typography>
               <Box sx={{ height: 300 }}>
@@ -333,14 +332,14 @@ const Dashboard: React.FC = () => {
                     <Line
                       type="monotone"
                       dataKey="templates"
-                      stroke="#8884d8"
+                      stroke="#1e3a5f"
                       name="Новые шаблоны"
                       strokeWidth={2}
                     />
                     <Line
                       type="monotone"
                       dataKey="versions"
-                      stroke="#82ca9d"
+                      stroke="#0d9488"
                       name="Новые версии"
                       strokeWidth={2}
                     />
@@ -351,8 +350,8 @@ const Dashboard: React.FC = () => {
           </Grid>
         ) : (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Активность по месяцам
               </Typography>
               <Alert severity="info">
@@ -366,8 +365,8 @@ const Dashboard: React.FC = () => {
         {/* Топ категорий */}
         {categoryData.length > 0 && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CategoryIcon /> Топ категорий
               </Typography>
               <List dense>
@@ -400,8 +399,8 @@ const Dashboard: React.FC = () => {
         {/* Топ отделов */}
         {departmentData.length > 0 && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BusinessIcon /> Топ отделов
               </Typography>
               <List dense>
@@ -426,10 +425,9 @@ const Dashboard: React.FC = () => {
         )}
       </Grid>
 
-      {/* Отладочная информация */}
-      <Alert severity="info" sx={{ mt: 3 }}>
-        Статистика обновлена: {stats?.lastUpdated ? 
-          new Date(stats.lastUpdated).toLocaleString('ru-RU') : 
+      <Alert severity="info" variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
+        Статистика обновлена: {stats?.lastUpdated ?
+          new Date(stats.lastUpdated).toLocaleString('ru-RU') :
           new Date().toLocaleString('ru-RU')}
         {process.env.NODE_ENV === 'development' && (
           <Typography variant="caption" component="div" sx={{ mt: 1 }}>

@@ -104,17 +104,19 @@ export default function Profile({ onBack }: ProfileProps) {
   };
 
   return (
-    <Box sx={{ py: 4, maxWidth: 480, mx: 'auto', px: 2 }}>
+    <Box sx={{ py: 4, maxWidth: 520, mx: 'auto', px: 2 }}>
       {onBack && (
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={onBack}
           sx={{ mb: 2 }}
+          variant="text"
+          color="primary"
         >
           Назад
         </Button>
       )}
-      <Typography variant="h5" component="h1" gutterBottom align="center" sx={{ mb: 3 }}>
+      <Typography variant="h5" component="h1" gutterBottom align="center" sx={{ mb: 3 }} fontWeight={700} color="primary.main">
         Мой профиль
       </Typography>
 
@@ -125,7 +127,7 @@ export default function Profile({ onBack }: ProfileProps) {
       )}
 
       {/* Profile form */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <PersonIcon color="primary" />
           <Typography variant="h6">Данные профиля</Typography>
@@ -161,13 +163,13 @@ export default function Profile({ onBack }: ProfileProps) {
             disabled={profileSubmitting}
             sx={{ mt: 2 }}
           >
-            {profileSubmitting ? <CircularProgress size={24} /> : 'Сохранить'}
+            {profileSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Сохранить'}
           </Button>
         </form>
       </Paper>
 
       {/* Password form */}
-      <Paper elevation={2} sx={{ p: 3 }}>
+      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <LockIcon color="primary" />
           <Typography variant="h6">Смена пароля</Typography>
@@ -218,13 +220,13 @@ export default function Profile({ onBack }: ProfileProps) {
             disabled={passwordSubmitting || passwordMismatch || !!(newPassword && newPassword.length < 6)}
             sx={{ mt: 2 }}
           >
-            {passwordSubmitting ? <CircularProgress size={24} /> : 'Сменить пароль'}
+            {passwordSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Сменить пароль'}
           </Button>
         </form>
       </Paper>
 
       {/* Delete account */}
-      <Paper elevation={2} sx={{ p: 3, mt: 3, border: '1px solid', borderColor: 'error.light' }}>
+      <Paper elevation={0} sx={{ p: 3, mt: 3, borderRadius: 2, border: '1px solid', borderColor: 'error.light' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <DeleteForeverIcon color="error" />
           <Typography variant="h6" color="error.main">

@@ -124,7 +124,7 @@ const TemplateManager: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" fontWeight="bold">
+        <Typography variant="h4" component="h1" fontWeight={700} color="primary.main">
           Управление шаблонами
         </Typography>
         <Badge
@@ -137,15 +137,15 @@ const TemplateManager: React.FC = () => {
         </Badge>
       </Box>
 
-      <Paper sx={{ mb: 3 }}>
+      <Paper elevation={0} sx={{ mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={(_, newValue: number) => setActiveTab(newValue)}
           variant="fullWidth"
           sx={{
-            '& .MuiTab-root': {
-              minHeight: 60,
-            },
+            '& .MuiTab-root': { minHeight: 56 },
+            '& .Mui-selected': { color: 'primary.main', fontWeight: 600 },
+            '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' },
           }}
         >
           <Tab
