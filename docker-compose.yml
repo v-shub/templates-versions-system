@@ -1,27 +1,39 @@
+# Load variables from .env (copy from .env.example). All values come from env.
 services:
-  # Backend сервис
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: template-manager-backend
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env
     environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/template-manager
-      - ELASTICSEARCH_URL=http://elasticsearch:9200  
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=x-cnluF0oZujWoDZMAU-
-      - ELASTICSEARCH_CA_FINGERPRINT=bcaf838e371639d1e5c1c98925c0ef991f207f1b2476ebf9924240ab66b0c11c
-      - ELASTICSEARCH_TLS_SKIP_VERIFY=true 
-      - REDIS_URL=redis://redis:6379
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - STORAGE_TYPE=local
-      - UPLOAD_PATH=./uploads
-      - BASE_URL=http://localhost:3000
+      - PORT=${PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONGODB_URI=${MONGODB_URI}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      - ELASTICSEARCH_CA_FINGERPRINT=${ELASTICSEARCH_CA_FINGERPRINT:-}
+      - ELASTICSEARCH_TLS_SKIP_VERIFY=${ELASTICSEARCH_TLS_SKIP_VERIFY:-true}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - UPLOAD_PATH=${UPLOAD_PATH:-./uploads}
+      - BASE_URL=${BASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE:-7d}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_DIR=${LOG_DIR:-./logs}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_ENDPOINT=${S3_ENDPOINT:-}
     volumes:
       - ./backend/uploads:/app/uploads
       - /app/node_modules
@@ -36,13 +48,12 @@ services:
     networks:
       - app-network
 
-  # Frontend сервис
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=/api
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-/api}
     container_name: template-manager-frontend
     ports:
       - "80:80"
@@ -52,26 +63,26 @@ services:
     networks:
       - app-network
 
-  # MongoDB сервис
   mongodb:
     image: mongo:6
     container_name: template-manager-mongodb
     ports:
       - "27017:27017"
+    env_file:
+      - .env
     environment:
-      - MONGO_INITDB_DATABASE=template-manager
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE:-template-manager}
     volumes:
       - mongodb_data:/data/db
     restart: unless-stopped
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/template-manager --quiet
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/${MONGO_INITDB_DATABASE:-template-manager} --quiet
       interval: 30s
       timeout: 10s
       retries: 3
     networks:
       - app-network
 
-  # Redis сервис
   redis:
     image: redis:7-alpine
     container_name: template-manager-redis
@@ -89,16 +100,17 @@ services:
     networks:
       - app-network
 
-  # Elasticsearch сервис
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: template-manager-elasticsearch
+    env_file:
+      - .env
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=true
-      - ELASTIC_PASSWORD=x-cnluF0oZujWoDZMAU-
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.http.ssl.enabled=false  
+      - xpack.security.http.ssl.enabled=false
     ports:
       - "9200:9200"
     volumes:
@@ -108,7 +120,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -s -u elastic:x-cnluF0oZujWoDZMAU- http://localhost:9200 | grep -q 'You Know, for Search'",
+          "curl -s -u elastic:$$ELASTIC_PASSWORD http://localhost:9200 | grep -q 'You Know, for Search'",
         ]
       interval: 30s
       timeout: 10s
@@ -124,4 +136,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-

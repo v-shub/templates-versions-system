@@ -32,11 +32,24 @@ jobs:
     - name: Install dependencies
       working-directory: ./backend
       run: npm install
-    
+
+    - name: Prepare env from .env.example
+      working-directory: ./backend
+      run: cp .env.example .env
+
     - name: Run tests
       working-directory: ./backend
       run: npm test
       env:
         MONGODB_URI: mongodb://localhost:27017/test-template-manager
+        MONGODB_TEST_URI: mongodb://localhost:27017/test-template-manager
         REDIS_URL: redis://localhost:6379
         NODE_ENV: test
+        JWT_SECRET: test-jwt-secret
+        ELASTICSEARCH_URL: https://localhost:9200
+        ELASTICSEARCH_USERNAME: elastic
+        ELASTICSEARCH_PASSWORD: test-password
+        CORS_ORIGIN: http://localhost:3001
+        BASE_URL: http://localhost:3000
+        STORAGE_TYPE: local
+        UPLOAD_PATH: ./uploads

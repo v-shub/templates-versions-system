@@ -30,6 +30,12 @@ import {
 } from '@mui/icons-material';
 import { templateApi } from '../../services/api';
 import {
+  getStatusData,
+  getStatusChartData,
+  getActivityData,
+  getApprovedCount,
+} from './dashboardStatsUtils';
+import {
   BarChart,
   Bar,
   XAxis,
@@ -45,6 +51,8 @@ import {
   Line,
 } from 'recharts';
 
+const COLORS = ['#1e3a5f', '#0d9488', '#d97706', '#0284c7', '#64748b'];
+
 const Dashboard: React.FC = () => {
   const {
     data: stats,
@@ -52,8 +60,6 @@ const Dashboard: React.FC = () => {
     error,
     refetch,
   } = useQuery('templateStats', templateApi.getStats);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   if (isLoading) {
     return (
@@ -71,108 +77,26 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // ТОЧНАЯ обработка данных по статусам
-  const getStatusData = () => {
-    if (!stats?.byStatus || typeof stats.byStatus !== 'object') {
-      return [];
-    }
-
-    // Преобразуем объект в массив с правильными названиями
-    const statusEntries = Object.entries(stats.byStatus);
-    
-    // Логируем для отладки
-    console.log('Статистика по статусам:', stats.byStatus);
-    console.log('Преобразованные записи:', statusEntries);
-
-    return statusEntries.map(([statusKey, count]: [string, any]) => {
-      let statusName;
-      
-      switch (statusKey.toLowerCase()) {
-        case 'draft':
-          statusName = 'Черновики';
-          break;
-        case 'approved':
-          statusName = 'Утвержденные';
-          break;
-        case 'deprecated':
-          statusName = 'Устаревшие';
-          break;
-        default:
-          statusName = statusKey;
-      }
-
-      return {
-        name: statusName,
-        value: Number(count) || 0,
-        originalKey: statusKey,
-      };
-    }).filter(item => item.value > 0); // Фильтруем только статусы с количеством > 0
-  };
-
-  const statusData = getStatusData();
-  
-  // Вычисляем общее количество для процентов
-  const totalStatusCount = statusData.reduce((sum, item) => sum + item.value, 0);
-
-  // Подготовка данных для графика с процентами
-  const statusChartData = statusData.map(item => ({
-    ...item,
-    percentage: totalStatusCount > 0 ? 
-      ((item.value / totalStatusCount) * 100).toFixed(1) : 
-      '0.0',
-    label: `${item.name}: ${item.value} (${totalStatusCount > 0 ? 
-      ((item.value / totalStatusCount) * 100).toFixed(1) : 
-      '0.0'}%)`
-  }));
-
-  // Логи для отладки
+  const statusData = getStatusData(stats);
+  const { statusChartData, totalStatusCount } = getStatusChartData(statusData);
   console.log('Итоговые данные статусов:', statusChartData);
   console.log('Всего шаблонов по статусам:', totalStatusCount);
 
   const categoryData = stats?.byCategory || [];
   const departmentData = stats?.byDepartment || [];
-
-  // Реальные данные активности (если есть в API)
-  const getActivityData = () => {
-    if (stats?.activityByMonth && Array.isArray(stats.activityByMonth)) {
-      return stats.activityByMonth.map((item: any) => ({
-        month: item.month,
-        templates: item.newTemplates || 0,
-        versions: item.newVersions || 0,
-      }));
-    }
-    
-    return [];
-  };
-
-  const activityData = getActivityData();
-
-  // Получаем точное количество активных шаблонов
-  const getApprovedCount = () => {
-    if (stats?.byStatus?.approved !== undefined) {
-      return Number(stats.byStatus.approved);
-    }
-    
-    // Ищем в statusData
-    const approvedItem = statusData.find(item => 
-      item.originalKey.toLowerCase() === 'approved'
-    );
-    return approvedItem ? approvedItem.value : 0;
-  };
-
-  const approvedCount = getApprovedCount();
+  const activityData = getActivityData(stats);
+  const approvedCount = getApprovedCount(stats, statusData);
   const totalTemplates = stats?.totalTemplates || 0;
-  const approvedPercentage = totalTemplates > 0 ? 
-    Math.round((approvedCount / totalTemplates) * 100) : 0;
+  const approvedPercentage =
+    totalTemplates > 0 ? Math.round((approvedCount / totalTemplates) * 100) : 0;
 
   return (
     <Box>
-      {/* Заголовок и кнопка обновления */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h5" fontWeight="bold">
+        <Typography variant="h5" fontWeight={700} color="primary.main">
           Статистика шаблонов
         </Typography>
-        <IconButton onClick={() => refetch()} color="primary">
+        <IconButton onClick={() => refetch()} color="primary" size="medium" aria-label="Обновить">
           <RefreshIcon />
         </IconButton>
       </Box>
@@ -303,8 +227,8 @@ const Dashboard: React.FC = () => {
         {/* Распределение по статусам */}
         {statusChartData.length > 0 ? (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Распределение по статусам
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
                   Всего: {totalStatusCount} шаблонов
@@ -379,8 +303,8 @@ const Dashboard: React.FC = () => {
           </Grid>
         ) : (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Распределение по статусам
               </Typography>
               <Alert severity="warning">
@@ -393,8 +317,8 @@ const Dashboard: React.FC = () => {
         {/* Активность по месяцам - показываем только если есть данные */}
         {activityData.length > 0 ? (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Активность по месяцам
               </Typography>
               <Box sx={{ height: 300 }}>
@@ -408,14 +332,14 @@ const Dashboard: React.FC = () => {
                     <Line
                       type="monotone"
                       dataKey="templates"
-                      stroke="#8884d8"
+                      stroke="#1e3a5f"
                       name="Новые шаблоны"
                       strokeWidth={2}
                     />
                     <Line
                       type="monotone"
                       dataKey="versions"
-                      stroke="#82ca9d"
+                      stroke="#0d9488"
                       name="Новые версии"
                       strokeWidth={2}
                     />
@@ -426,8 +350,8 @@ const Dashboard: React.FC = () => {
           </Grid>
         ) : (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Активность по месяцам
               </Typography>
               <Alert severity="info">
@@ -441,8 +365,8 @@ const Dashboard: React.FC = () => {
         {/* Топ категорий */}
         {categoryData.length > 0 && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CategoryIcon /> Топ категорий
               </Typography>
               <List dense>
@@ -475,8 +399,8 @@ const Dashboard: React.FC = () => {
         {/* Топ отделов */}
         {departmentData.length > 0 && (
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Paper elevation={0} sx={{ p: 3, height: '100%', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BusinessIcon /> Топ отделов
               </Typography>
               <List dense>
@@ -501,10 +425,9 @@ const Dashboard: React.FC = () => {
         )}
       </Grid>
 
-      {/* Отладочная информация */}
-      <Alert severity="info" sx={{ mt: 3 }}>
-        Статистика обновлена: {stats?.lastUpdated ? 
-          new Date(stats.lastUpdated).toLocaleString('ru-RU') : 
+      <Alert severity="info" variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
+        Статистика обновлена: {stats?.lastUpdated ?
+          new Date(stats.lastUpdated).toLocaleString('ru-RU') :
           new Date().toLocaleString('ru-RU')}
         {process.env.NODE_ENV === 'development' && (
           <Typography variant="caption" component="div" sx={{ mt: 1 }}>

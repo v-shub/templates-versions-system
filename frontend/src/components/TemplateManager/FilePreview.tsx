@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -25,7 +25,7 @@ import {
   Image as ImageIcon,
   TextFields as TextIcon,
 } from '@mui/icons-material';
-import { templateApi, Template } from '../../services/api';
+import { templateApi, Template, triggerBlobDownload } from '../../services/api';
 
 interface FilePreviewProps {
   open: boolean;
@@ -39,33 +39,72 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
   const [scale, setScale] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [previewContentType, setPreviewContentType] = useState<string>('');
+  const blobUrlRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (open && template) {
-      loadPreview();
-    }
-  }, [open, template]);
-
-  const loadPreview = async () => {
+  const loadPreview = useCallback(async () => {
+    if (!template) return;
     try {
       setLoading(true);
       setError(null);
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+      setPreviewUrl(null);
+      setTextContent(null);
+      setPreviewContentType('');
 
-      const url = templateApi.previewTemplate(template._id);
-      
-      // Проверяем доступность предпросмотра
-      const response = await fetch(url, { method: 'HEAD' });
-      if (!response.ok) {
+      const mimeType = template.file.mimeType.toLowerCase();
+      const isOffice = mimeType.includes('wordprocessingml') || mimeType.includes('spreadsheetml') || mimeType.includes('presentationml');
+      const isPreviewable =
+        mimeType.includes('pdf') ||
+        mimeType.includes('image') ||
+        mimeType.includes('text') ||
+        isOffice;
+
+      if (!isPreviewable) {
         throw new Error('Предпросмотр недоступен для этого типа файла');
       }
 
-      setPreviewUrl(url);
+      const { blob, contentType } = await templateApi.fetchPreviewBlob(template._id);
+      setPreviewContentType(contentType);
+
+      if (contentType.includes('pdf') || contentType.includes('image')) {
+        setTextContent(null);
+        const blobUrl = URL.createObjectURL(blob);
+        blobUrlRef.current = blobUrl;
+        setPreviewUrl(blobUrl);
+        return;
+      }
+      if (contentType.includes('text/html')) {
+        const html = await blob.text();
+        setTextContent(html);
+        setPreviewUrl(null);
+        return;
+      }
+      const text = await blob.text();
+      setTextContent(text);
+      setPreviewUrl(null);
     } catch (err: any) {
       setError(err.message || 'Ошибка при загрузке предпросмотра');
     } finally {
       setLoading(false);
     }
-  };
+  }, [template]);
+
+  useEffect(() => {
+    if (open && template) {
+      loadPreview();
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [open, template, loadPreview]);
 
   const getFileIcon = () => {
     const mimeType = template.file.mimeType.toLowerCase();
@@ -96,11 +135,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
 
     const mimeType = template.file.mimeType.toLowerCase();
 
-    if (mimeType.includes('pdf')) {
+    if (previewContentType.includes('pdf') && previewUrl) {
       return (
         <Box sx={{ height: '70vh', width: '100%' }}>
           <iframe
-            src={previewUrl || ''}
+            src={previewUrl}
             title={template.name}
             style={{
               width: '100%',
@@ -114,11 +153,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
       );
     }
 
-    if (mimeType.includes('image')) {
+    if (previewContentType.includes('image') && previewUrl) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
           <img
-            src={previewUrl || ''}
+            src={previewUrl}
             alt={template.name}
             style={{
               maxWidth: '100%',
@@ -131,11 +170,30 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
       );
     }
 
-    if (mimeType.includes('text')) {
+    if (previewContentType.includes('text/html') && textContent) {
+      return (
+        <Box sx={{ height: '70vh', width: '100%' }}>
+          <iframe
+            srcDoc={textContent}
+            title={template.name}
+            sandbox="allow-same-origin"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          />
+        </Box>
+      );
+    }
+
+    if (mimeType.includes('text') || previewContentType.includes('text/plain')) {
       return (
         <Box sx={{ height: '70vh', overflow: 'auto', p: 2, bgcolor: 'grey.50' }}>
           <pre style={{ margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-            {loading ? 'Загрузка...' : 'Текстовый предпросмотр'}
+            {textContent ?? (loading ? 'Загрузка...' : '')}
           </pre>
         </Box>
       );
@@ -160,8 +218,13 @@ const FilePreview: React.FC<FilePreviewProps> = ({ open, onClose, template }) =>
     setScale(1);
   };
 
-  const handleDownload = () => {
-    window.open(templateApi.downloadTemplate(template._id), '_blank');
+  const handleDownload = async () => {
+    try {
+      const { blob, filename } = await templateApi.fetchDownloadBlob(template._id);
+      triggerBlobDownload(blob, filename || template.file.originalName);
+    } catch (err) {
+      console.error('Download failed', err);
+    }
   };
 
   const formatFileSize = (bytes: number) => {

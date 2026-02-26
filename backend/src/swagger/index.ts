@@ -8,6 +8,9 @@ import fs from 'fs';
 const swaggerYamlPath = path.join(__dirname, 'swagger.yaml');
 const swaggerYamlContent = fs.readFileSync(swaggerYamlPath, 'utf8');
 
+const apiBaseUrl = process.env.BASE_URL ?? 'http://localhost:3000';
+const servers = [{ url: `${apiBaseUrl.replace(/\/$/, '')}/api`, description: 'API server (from BASE_URL)' }];
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -16,18 +19,8 @@ const options: swaggerJsdoc.Options = {
       version: '1.0.0',
       description: 'API для управления шаблонами документов',
     },
-    servers: [
-      {
-        url: 'http://localhost:3000/api',
-        description: 'Development server',
-      },
-      {
-        url: 'https://api.template-system.com/api',
-        description: 'Production server',
-      },
-    ],
+    servers,
   },
-  // Если хотите использовать JSDoc комментарии в коде
   apis: [
     './src/routes/*.ts',
     './src/controllers/*.ts',
@@ -37,10 +30,11 @@ const options: swaggerJsdoc.Options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-// Альтернативно, можно напрямую использовать YAML
+const yamlSpec = require('js-yaml').load(swaggerYamlContent);
 const swaggerSpecFromYaml = {
   ...swaggerJsdoc(options),
-  ...require('js-yaml').load(swaggerYamlContent),
+  ...yamlSpec,
+  servers,
 };
 
 export function setupSwagger(app: Express): void {
@@ -59,5 +53,5 @@ export function setupSwagger(app: Express): void {
     res.send(swaggerYamlContent);
   });
   
-  console.log('Swagger documentation available at http://localhost:3000/api-docs');
+  console.log(`Swagger documentation available at ${apiBaseUrl}/api-docs`);
 }

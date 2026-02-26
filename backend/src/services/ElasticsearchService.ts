@@ -13,12 +13,13 @@ export class ElasticsearchService {
     console.log('URL:', process.env.ELASTICSEARCH_URL);
     console.log('Username:', process.env.ELASTICSEARCH_USERNAME);
     
+    const node = process.env.ELASTICSEARCH_URL;
+    const username = process.env.ELASTICSEARCH_USERNAME;
+    const password = process.env.ELASTICSEARCH_PASSWORD;
+    if (!node || !username || !password) throw new Error('ELASTICSEARCH_URL, ELASTICSEARCH_USERNAME, ELASTICSEARCH_PASSWORD are required in .env');
     this.client = new Client({
-      node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
-      auth: {
-        username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
-        password: process.env.ELASTICSEARCH_PASSWORD || 'x-cnluF0oZujWoDZMAU-'
-      },
+      node,
+      auth: { username, password },
       tls: {
         rejectUnauthorized: false
       },

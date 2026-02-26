@@ -1,15 +1,56 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function wrapPreviewHtml(body: string, title: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${escapeHtml(title)}</title><style>
+body{font-family:system-ui,sans-serif;margin:1rem;background:#fff;color:#222;}
+</style></head><body>${body}</body></html>`;
+}
+
 export class OfficeDocumentService {
   /**
-   * Извлекает текст из DOCX файла
+   * Конвертирует DOCX в HTML для предпросмотра
+   */
+  async convertDocxToHtml(buffer: Buffer): Promise<string> {
+    try {
+      const mammoth = await import('mammoth');
+      const result = await mammoth.convertToHtml({ buffer });
+      return wrapPreviewHtml(result.value || '', 'Document');
+    } catch (error: any) {
+      throw new Error(`Failed to convert DOCX to HTML: ${error.message}`);
+    }
+  }
+
+  /**
+   * Конвертирует Office документ в HTML по типу (DOCX — mammoth; XLSX/PPTX — обёрнутый текст)
+   */
+  async convertOfficeToHtml(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
+    const lower = fileName.toLowerCase();
+    if (mimeType.includes('wordprocessingml') || lower.endsWith('.docx')) {
+      return this.convertDocxToHtml(buffer);
+    }
+    const text = await this.extractTextFromOfficeDocument(buffer, mimeType, fileName);
+    const body = `<pre style="white-space:pre-wrap;word-break:break-word;">${escapeHtml(text)}</pre>`;
+    return wrapPreviewHtml(body, 'Document');
+  }
+
+  /**
+   * Извлекает текст из DOCX файла (XML-парсинг + fallback по тегам w:t)
    */
   async extractTextFromDocx(buffer: Buffer): Promise<string> {
     try {
       const zip = await JSZip.loadAsync(buffer);
       const documentXml = await zip.file('word/document.xml')?.async('string');
-      
+
       if (!documentXml) {
         throw new Error('Could not find document.xml in DOCX file');
       }
@@ -21,25 +62,40 @@ export class OfficeDocumentService {
       });
 
       const parsed = parser.parse(documentXml);
-      const text = this.extractTextFromXml(parsed);
-      
-      return text;
+      let text = this.extractTextFromXml(parsed);
+
+      if (!text || !text.trim()) {
+        text = this.extractTextFromDocxFallback(documentXml);
+      }
+
+      return text || '';
     } catch (error: any) {
       throw new Error(`Failed to extract text from DOCX: ${error.message}`);
     }
   }
 
+  /** Fallback: извлечение текста по тегам <w:t> из document.xml */
+  private extractTextFromDocxFallback(documentXml: string): string {
+    const parts: string[] = [];
+    const regex = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(documentXml)) !== null) {
+      if (m[1]) parts.push(m[1]);
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
   /**
-   * Извлекает текст из XLSX файла
+   * Извлекает текст из XLSX файла (парсинг XML + fallback по тегам)
    */
   async extractTextFromXlsx(buffer: Buffer): Promise<string> {
     try {
       const zip = await JSZip.loadAsync(buffer);
       const sharedStrings = await zip.file('xl/sharedStrings.xml')?.async('string');
-      
+
       if (!sharedStrings) {
-        // Если нет sharedStrings, пробуем извлечь из ячеек напрямую
-        return this.extractTextFromXlsxCells(zip);
+        const cellText = await this.extractTextFromXlsxCells(zip);
+        return cellText || (await this.extractTextFromXlsxFallback(zip));
       }
 
       const parser = new XMLParser({
@@ -50,26 +106,59 @@ export class OfficeDocumentService {
 
       const parsed = parser.parse(sharedStrings);
       const strings: string[] = [];
-      
+
       if (parsed.sst?.si) {
         const siArray = Array.isArray(parsed.sst.si) ? parsed.sst.si : [parsed.sst.si];
         for (const si of siArray) {
           if (si.t?._text) {
             strings.push(si.t._text);
           } else if (si.t) {
-            strings.push(si.t);
+            strings.push(typeof si.t === 'string' ? si.t : (si.t._text ?? ''));
+          } else if (si.r) {
+            const runs = Array.isArray(si.r) ? si.r : [si.r];
+            runs.forEach((r: any) => {
+              if (r.t?._text) strings.push(r.t._text);
+              else if (r.t) strings.push(String(r.t));
+            });
           }
         }
       }
 
-      // Также извлекаем из ячеек
       const cellText = await this.extractTextFromXlsxCells(zip);
-      const allText = [...strings, cellText].filter(Boolean).join('\n');
-      
-      return allText || 'No text content found';
+      let allText = [...strings, cellText].filter(Boolean).join('\n');
+
+      if (!allText || allText === 'No text content found') {
+        allText = await this.extractTextFromXlsxFallback(zip);
+      }
+
+      return allText || '';
     } catch (error: any) {
       throw new Error(`Failed to extract text from XLSX: ${error.message}`);
     }
+  }
+
+  /** Fallback: извлечение текста из sharedStrings и листов XLSX по тегам <t>, <v> */
+  private async extractTextFromXlsxFallback(zip: JSZip): Promise<string> {
+    const parts: string[] = [];
+    const sharedStringsXml = await zip.file('xl/sharedStrings.xml')?.async('string');
+    if (sharedStringsXml) {
+      const tRegex = /<[^>]*:?t(?:\s[^>]*)?>([^<]*)<\/[^>]*:?t>/gi;
+      let m: RegExpExecArray | null;
+      while ((m = tRegex.exec(sharedStringsXml)) !== null) {
+        if (m[1]) parts.push(m[1]);
+      }
+    }
+    const sheetFiles = Object.keys(zip.files).filter((n) => n.startsWith('xl/worksheets/sheet') && n.endsWith('.xml'));
+    for (const name of sheetFiles) {
+      const xml = await zip.file(name)?.async('string');
+      if (!xml) continue;
+      const vRegex = /<[^>]*:?v(?:\s[^>]*)?>([^<]*)<\/[^>]*:?v>/gi;
+      let vm: RegExpExecArray | null;
+      while ((vm = vRegex.exec(xml)) !== null) {
+        if (vm[1]) parts.push(vm[1]);
+      }
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
   }
 
   /**
@@ -136,16 +225,14 @@ export class OfficeDocumentService {
   }
 
   /**
-   * Извлекает текст из PPTX файла
+   * Извлекает текст из PPTX файла (XML-парсинг + fallback по тегам a:t)
    */
   async extractTextFromPptx(buffer: Buffer): Promise<string> {
     try {
       const zip = await JSZip.loadAsync(buffer);
       const textParts: string[] = [];
-
-      // Ищем все файлы слайдов
-      const slideFiles = Object.keys(zip.files).filter(name => 
-        name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+      const slideFiles = Object.keys(zip.files).filter(
+        (name) => name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
       );
 
       for (const slideName of slideFiles) {
@@ -159,16 +246,49 @@ export class OfficeDocumentService {
         });
 
         const parsed = parser.parse(slideXml);
-        const slideText = this.extractTextFromXml(parsed);
+        let slideText = this.extractTextFromXml(parsed);
+
+        if (!slideText || !slideText.trim()) {
+          slideText = this.extractTextFromPptxSlideFallback(slideXml);
+        }
+
         if (slideText) {
           textParts.push(`[Slide ${slideName.match(/slide(\d+)/)?.[1] || '?'}]\n${slideText}`);
         }
       }
 
-      return textParts.join('\n\n') || 'No text content found';
+      let result = textParts.join('\n\n');
+      if (!result || result === 'No text content found') {
+        result = await this.extractTextFromPptxFallback(zip);
+      }
+      return result || '';
     } catch (error: any) {
       throw new Error(`Failed to extract text from PPTX: ${error.message}`);
     }
+  }
+
+  /** Fallback: извлечение текста из XML слайда по тегам a:t (DrawingML) */
+  private extractTextFromPptxSlideFallback(slideXml: string): string {
+    const parts: string[] = [];
+    const regex = /<[^>]*:?t(?:\s[^>]*)?>([^<]*)<\/[^>]*:?t>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(slideXml)) !== null) {
+      if (m[1]) parts.push(m[1]);
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  /** Fallback: обход всех слайдов и извлечение по тегам */
+  private async extractTextFromPptxFallback(zip: JSZip): Promise<string> {
+    const parts: string[] = [];
+    const slideFiles = Object.keys(zip.files).filter(
+      (name) => name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+    );
+    for (const name of slideFiles) {
+      const xml = await zip.file(name)?.async('string');
+      if (xml) parts.push(this.extractTextFromPptxSlideFallback(xml));
+    }
+    return parts.filter(Boolean).join('\n\n');
   }
 
   /**
