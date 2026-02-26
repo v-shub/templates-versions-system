@@ -131,7 +131,19 @@ const TemplateListTab: React.FC<TemplateListTabProps> = ({
             />
           </Grid>
           <Grid item xs={12} md={6}>
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="flex-end"
+              useFlexGap
+              sx={{
+                flexWrap: 'wrap',
+                '& .MuiButton-root': {
+                  whiteSpace: 'nowrap',
+                  minWidth: 'min-content',
+                },
+              }}
+            >
               <Button
                 startIcon={<FilterListIcon />}
                 onClick={onSwitchToAdvancedSearch}
